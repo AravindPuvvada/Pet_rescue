@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Mail, Lock, Shield } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, Shield, Phone, Home, MapPin, Image as ImageIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from "@react-oauth/google";
-
 
 interface FormData {
   username: string;
   email: string;
   password: string;
   confirmPassword: string;
-  role: 'ADMIN' | 'USER';
+  role: 'ADMIN' | 'PET_OWNER' | 'PET_RESCUER' | 'PET_ADOPTER';
+  gender?: string;
+  phone?: string;
+  address?: string;
+  pincode?: string;
+  profile_image?: File | null;
 }
 
 interface FormErrors {
@@ -18,6 +21,9 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   role?: string;
+  gender?: string;
+  phone?: string;
+  pincode?: string;
 }
 
 const Register: React.FC = () => {
@@ -26,7 +32,12 @@ const Register: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'USER'
+    role: 'PET_OWNER',
+    gender: '',
+    phone: '',
+    address: '',
+    pincode: '',
+    profile_image: null
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -51,81 +62,60 @@ const Register: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    if (files) {
+      setFormData(prev => ({ ...prev, [name]: files[0] }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     if (errors[name as keyof FormErrors]) setErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setLoading(true);
-    setMessage(null);
+  setLoading(true);
+  setMessage(null);
 
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/register/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role
-        }),
-      });
+  try {
+    const dataToSend = new FormData();
 
-      const data = await response.json();
-      if (response.ok) {
-        setMessage('Account created successfully! Redirecting to login...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } else {
-        setMessage(data.detail || 'Registration failed');
+    // Append other fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== null && value !== '') {
+        // Role: send as array
+        if (key === 'role') {
+          dataToSend.append('role', value); // send as string, DRF SlugRelatedField will handle
+        } else if (value instanceof File) {
+          dataToSend.append(key, value); // file
+        } else {
+          dataToSend.append(key, String(value)); // string/number
+        }
       }
-    } catch (err) {
-      console.error(err);
-      setMessage('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
+    });
+
+    const response = await fetch('http://127.0.0.1:8000/api/register/', {
+      method: 'POST',
+      body: dataToSend,
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setMessage('Account created successfully! Redirecting to login...');
+      setTimeout(() => navigate('/login'), 2000);
+    } else {
+      setMessage(data.detail || 'Registration failed');
     }
-  };
-
-  // ---------------- Google Login ----------------
-  const googleLogin = useGoogleLogin({
-  flow: "auth-code", // Use auth-code flow
-  onSuccess: async (response) => {
-    const code = response.code; // <-- auth code returned by Google
-    if (!code) {
-      alert("No code returned from Google");
-      return;
-    }
-
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/login/google/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }), // Send code to backend
-      });
-
-      const data = await res.json();
-      console.log("Google login response:", data);
-
-      if (res.ok) {
-        localStorage.setItem("access_token", data.access);
-        window.location.href = "/mainpage";
-      } else {
-        alert(data.detail || "Google login failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong during Google login.");
-    }
-  },
-  onError: () => alert("Google login failed"),
-});
+  } catch (err) {
+    console.error(err);
+    setMessage('Something went wrong. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -149,6 +139,7 @@ const Register: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Existing fields (username, email, password, confirm password, role) remain SAME */}
           {/* Username */}
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">Username</label>
@@ -206,15 +197,79 @@ const Register: React.FC = () => {
           {/* Role */}
           <div>
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select id="role" name="role" value={formData.role} onChange={handleInputChange}
-              className={`block w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${errors.role ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}>
-              <option value="USER">User</option>
-              <option value="ADMIN">Admin</option>
-            </select>
+            <select
+  id="role"
+  name="role"
+  value={formData.role}
+  onChange={handleInputChange}
+  className={`block w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors ${errors.role ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+>
+  <option value="Admin">Admin</option>
+  <option value="Pet Owner">Pet Owner</option>
+  <option value="Pet Rescuer">Pet Rescuer</option>
+  <option value="Pet Adopter">Pet Adopter</option>
+</select>
+
             {errors.role && <p className="mt-1 text-sm text-red-600">{errors.role}</p>}
           </div>
+          {/* Gender */}
+          <div>
+            <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+            <select id="gender" name="gender" value={formData.gender} onChange={handleInputChange}
+              className="block w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
 
-          <button type="submit" className="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors font-medium">Create Account</button>
+          {/* Phone */}
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input type="text" id="phone" name="phone" value={formData.phone} onChange={handleInputChange}
+                className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Enter your phone number" />
+            </div>
+          </div>
+
+          {/* Address */}
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+              <div className="relative flex items-center">
+                <Home className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <textarea
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Enter your address"
+                />
+              </div>
+            </div>
+          {/* Pincode */}
+          <div>
+            <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input type="number" id="pincode" name="pincode" value={formData.pincode} onChange={handleInputChange}
+                className="block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Enter your pincode" />
+            </div>
+          </div>
+
+          {/* Profile Image */}
+          <div>
+            <label htmlFor="profile_image" className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+            <div className="flex items-center space-x-3">
+              <ImageIcon className="h-5 w-5 text-gray-400" />
+              <input type="file" id="profile_image" name="profile_image" accept="image/*" onChange={handleInputChange} />
+            </div>
+          </div>
+
           <button 
             type="submit" 
             disabled={loading}
@@ -235,3 +290,4 @@ const Register: React.FC = () => {
 };
 
 export default Register;
+

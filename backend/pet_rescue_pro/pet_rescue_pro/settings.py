@@ -87,15 +87,13 @@ WSGI_APPLICATION = 'pet_rescue_pro.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "pet_rescue_db",      # the DB you created in pgAdmin
+        "NAME": "pet_rescue",      # the DB you created in pgAdmin
         "USER": "postgres",
         "PASSWORD": "gopi0727",   # use your real password
         "HOST": "localhost",
         "PORT": "5432",
     }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -136,8 +134,10 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# settings.py
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
 
 
 # Django REST Framework configuration
@@ -155,6 +155,5 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-AUTH_USER_MODEL = "pet_rescue_app.User"
 
 ADMINS = [('Admin', 'gopim2565@gmail.com')]

@@ -1,107 +1,125 @@
-# from django.db import models
-# from django.contrib.auth.hashers import make_password
-
-# class User(models.Model):
-#     ROLE_CHOICES = [
-#         ("ADMIN", "ADMIN"),
-#         ("USER", "USER"),
-#     ]
-#     username = models.CharField(max_length=100, unique=True)
-#     email = models.EmailField(unique=True)
-#     # store hashed password (we’ll hash before saving)
-#     password = models.CharField(max_length=255)
-#     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="USER")
-
-#     def save(self, *args, **kwargs):
-#         # If the password is not already hashed (very naive check), hash it
-#         if not self.password.startswith("pbkdf2_"):
-#             self.password = make_password(self.password)
-#         super().save(*args, **kwargs)
-
-#     def __str__(self):
-#         return f"{self.username} ({self.email})"
-
-#     class Meta:
-#         db_table = "user"
-
-# class Pet(models.Model):
-#     STATUS_CHOICES = [("Lost", "Lost"), ("Found", "Found")]
-#     name = models.CharField(max_length=100)
-#     pet_type = models.CharField(max_length=50)
-#     breed = models.CharField(max_length=100, blank=True)
-#     color = models.CharField(max_length=50, blank=True)
-#     location = models.CharField(max_length=200, blank=True)
-#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Lost")
-#     image = models.ImageField(upload_to="pets/", blank=True, null=True)  # <-- added
-
-#     def __str__(self):
-#         return self.name
-
-#     class Meta:
-#         db_table = "pet"
-
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.hashers import make_password
 from django.utils import timezone
-from django.conf import settings
 
-class UserManager(BaseUserManager):
-    def create_user(self, email, username, password=None, role="USER"):
-        if not email:
-            raise ValueError("Users must have an email address")
-        email = self.normalize_email(email)
-        user = self.model(email=email, username=username, role=role)
-        user.set_password(password)  # hashes password
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, username, password):
-        user = self.create_user(email, username, password, role="ADMIN")
-        user.is_staff = True
-        user.is_superuser = True
-        user.save(using=self._db)
-        return user
-
-
-class User(AbstractBaseUser, PermissionsMixin):
-    ROLE_CHOICES = [
-        ("ADMIN", "ADMIN"),
-        ("USER", "USER"),
-    ]
-    username = models.CharField(max_length=100, unique=True)
-    email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="USER")
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)  # required for admin
-    date_joined = models.DateTimeField(default=timezone.now)
-
-    objects = UserManager()
-
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
-
-    def __str__(self):
-        return f"{self.username} ({self.email})"
+class BaseModel(models.Model):
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+    # created_by, modified_by can be nullable for existing rows
+    created_by = models.ForeignKey('Profile', null=True, blank=True, on_delete=models.SET_NULL, related_name='created_%(class)s_set')
+    modified_by = models.ForeignKey('Profile', null=True, blank=True, on_delete=models.SET_NULL, related_name='modified_%(class)s_set')
 
     class Meta:
-        db_table = "user"
+        abstract = True
 
 
-class Pet(models.Model):
-    STATUS_CHOICES = [("Lost", "Lost"), ("Found", "Found")]
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="pets")
-    name = models.CharField(max_length=100)
-    pet_type = models.CharField(max_length=50)
-    breed = models.CharField(max_length=100, blank=True)
-    color = models.CharField(max_length=50, blank=True)
-    location = models.CharField(max_length=200, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Lost")
-    image = models.ImageField(upload_to="pets/", blank=True, null=True)
+
+class Group(models.Model):
+    name = models.CharField(max_length=50, unique=True)
 
     def __str__(self):
         return self.name
-    class Meta:
-        db_table = "pet"
-    
 
 
+class Profile(models.Model):
+    GENDER_CHOICES = [
+        ("Male", "Male"),
+        ("Female", "Female"),
+        ("Other", "Other"),
+    ]
+
+    username = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=255)  # store hashed password
+    role = models.ManyToManyField(Group)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    pincode = models.BigIntegerField(blank=True, null=True)
+    profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.password.startswith("pbkdf2_"):  # hash only if not hashed
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.username
+
+
+class PetType(models.Model):
+    type = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.type
+
+
+class Pet(BaseModel):
+    GENDER_CHOICES = [("Male", "Male"), ("Female", "Female")]
+
+    name = models.CharField(max_length=100)
+    pet_type = models.ForeignKey(PetType, on_delete=models.CASCADE)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    breed = models.CharField(max_length=100, blank=True, null=True)
+    color = models.CharField(max_length=50, blank=True, null=True)
+    age = models.IntegerField(blank=True, null=True)
+    weight = models.IntegerField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    pincode = models.BigIntegerField(blank=True, null=True)
+    image = models.ImageField(upload_to="pet_images/", blank=True, null=True)
+    is_diseased = models.BooleanField(default=False)
+    is_vaccinated = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+
+class PetMedicalHistory(BaseModel):
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="medical_history")
+    last_vaccinated_date = models.DateField(blank=True, null=True)
+    vaccination_name = models.CharField(max_length=100, blank=True, null=True)
+    disease_name = models.CharField(max_length=100, blank=True, null=True)
+    stage = models.IntegerField(blank=True, null=True)
+    no_of_years = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.pet.name} Medical History"
+
+
+class PetReport(BaseModel):
+    PET_STATUS_CHOICES = [("Lost", "Lost"), ("Found", "Found"), ("Adopted", "Adopted")]
+    REPORT_STATUS_CHOICES = [("Pending", "Pending"), ("Accepted", "Accepted"), ("Resolved", "Resolved"), ("Reunited", "Reunited")]
+
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="reports")
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    pet_status = models.CharField(max_length=20, choices=PET_STATUS_CHOICES)
+    report_status = models.CharField(max_length=20, choices=REPORT_STATUS_CHOICES, default="Pending")
+    image = models.ImageField(upload_to="report_images/", blank=True, null=True)
+    is_resolved = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.pet.name} - {self.pet_status}"
+
+
+class PetAdoption(BaseModel):
+    STATUS_CHOICES = [("Pending", "Pending"), ("Approved", "Approved"), ("Rejected", "Rejected")]
+
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE)
+    requestor = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    message = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+
+    def __str__(self):
+        return f"Adoption Request for {self.pet.name} by {self.requestor.username}"
+
+
+class Notification(BaseModel):
+    sender = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Notification from {self.sender.username}"

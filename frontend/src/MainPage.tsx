@@ -382,14 +382,18 @@ function MainPage() {
   const fetchPets = async () => {
   try {
     setLoadingPets(true);
-    const token = localStorage.getItem("access_token");
-    if (!token) throw new Error("User not authenticated");
+
+    const tokenRaw = localStorage.getItem("access_token");
+    if (!tokenRaw) throw new Error("User not authenticated");
+
+    const token = tokenRaw.replace(/"/g, ""); // remove quotes if any
 
     const response = await axios.get("http://127.0.0.1:8000/api/pets/", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+
     setPets(response.data);
   } catch (error) {
     console.error("Error fetching pets:", error);
@@ -397,6 +401,7 @@ function MainPage() {
     setLoadingPets(false);
   }
 };
+
 
 
   const handleLogout = () => {
