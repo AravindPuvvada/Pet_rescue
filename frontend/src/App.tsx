@@ -1,9 +1,9 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./Login";
-import Register from "./Register";
-import MainPage from "./MainPage";
-
+import Login from "./components/auth/Login";
+import Register from "./components/auth/Register";
+import MainPage from "./components/auth/MainPage";
+import HomePage from "./HomePage";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem("access_token");
   if (!token) {
@@ -19,7 +19,7 @@ function App() {
     <Router>
       <Routes>
         {/* Redirect / based on login */}
-        <Route path="/" element={<Navigate to={token ? "/mainpage" : "/login"} replace />} />
+        <Route path="/" element={<HomePage />} />
 
         {/* Login/Register redirects if already logged in */}
         <Route

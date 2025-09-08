@@ -3,26 +3,24 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.hashers import check_password
 from .models import (
-    Profile, Pet, PetType, Group,
+    Profile, Pet, PetType,
     PetMedicalHistory, PetReport, PetAdoption, Notification
 )
 from .serializers import (
-    ProfileSerializer, PetSerializer, PetTypeSerializer, GroupSerializer,
-    PetMedicalHistorySerializer, PetReportSerializer, PetAdoptionSerializer, NotificationSerializer,
-    LoginSerializer
+    ProfileSerializer, PetTypeSerializer, PetSerializer,
+    PetMedicalHistorySerializer, PetReportSerializer,
+    PetAdoptionSerializer, NotificationSerializer, LoginSerializer
 )
+
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-
-
-# -------------------------
-# Group ViewSet
-# -------------------------
-class GroupViewSet(viewsets.ModelViewSet):
-    queryset = Group.objects.all().order_by("id")
-    serializer_class = GroupSerializer
-
+from rest_framework.decorators import action
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import UntypedToken
+from django.conf import settings
+import jwt
 
 # -------------------------
 # PetType ViewSet
@@ -39,6 +37,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all().order_by("id")
     serializer_class = ProfileSerializer
     parser_classes = (MultiPartParser, FormParser)
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
@@ -49,6 +48,20 @@ class ProfileViewSet(viewsets.ModelViewSet):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(modified_by=user)
 
+    # ✅ GET /api/profiles/profile_details/
+    @action(detail=False, methods=['get'], url_path='profile_details')
+    def profile_details(self, request):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            profile = Profile.objects.get(email=user.email)
+        except Profile.DoesNotExist:
+            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 # -------------------------
 # Pet ViewSet
@@ -132,33 +145,19 @@ class NotificationViewSet(viewsets.ModelViewSet):
 # -------------------------
 # Register API
 # -------------------------
-# Mapping frontend role to Django Group
-ROLE_MAPPING = {
-    "ADMIN": "admin",
-    "PET_OWNER": "pet_owner",
-    "PET_RESCUER": "pet_rescuer",
-    "PET_ADOPTER": "pet_adaptor",  # match your Group names
-}
 
 class RegisterAPIView(APIView):
     def post(self, request):
         serializer = ProfileSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            
-            # Assign Group based on role
-            frontend_role = request.data.get("role", "PET_OWNER")
-            group_name = ROLE_MAPPING.get(frontend_role)
-            if group_name:
-                group, created = Group.objects.get_or_create(name=group_name)
-                user.role.add(group)
-
             return Response({
                 "message": "Profile registered successfully",
                 "user": serializer.data
             }, status=status.HTTP_201_CREATED)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # -------------------------
@@ -179,18 +178,20 @@ class LoginAPIView(APIView):
 
         if check_password(raw_password, user.password):
             refresh = RefreshToken.for_user(user)
-            roles = list(user.role.values_list("name", flat=True))
+            refresh["email"] = user.email
+            access_token = str(refresh.access_token)
+
             return Response({
                 "refresh_token": str(refresh),
-                "access_token": str(refresh.access_token),
+                "access_token": access_token,
                 "user_id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "roles": roles,
                 "detail": "Login successful"
             })
-        
+
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 
 

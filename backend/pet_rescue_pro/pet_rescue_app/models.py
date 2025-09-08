@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
-
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 class BaseModel(models.Model):
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
@@ -13,15 +13,73 @@ class BaseModel(models.Model):
         abstract = True
 
 
+# class ProfileManager(BaseUserManager):
+#     def create_user(self, email, username, password=None, **extra_fields):
+#         if not email:
+#             raise ValueError("Email is required")
+#         email = self.normalize_email(email)
+#         user = self.model(email=email, username=username, **extra_fields)
+#         user.set_password(password)
+#         user.save(using=self._db)
+#         return user
 
-class Group(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+#     def create_superuser(self, email, username, password=None, **extra_fields):
+#         extra_fields.setdefault("is_staff", True)
+#         extra_fields.setdefault("is_superuser", True)
+#         return self.create_user(email, username, password, **extra_fields)
 
-    def __str__(self):
-        return self.name
+
+# class Profile(AbstractBaseUser, PermissionsMixin, BaseModel):
+#     GENDER_CHOICES = [
+#         ("Male", "Male"),
+#         ("Female", "Female"),
+#         ("Other", "Other"),
+#     ]
+
+#     username = models.CharField(max_length=100, unique=True)
+#     email = models.EmailField(unique=True)
+#     password = models.CharField(max_length=255)
+#     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
+#     phone = models.CharField(max_length=15, blank=True, null=True)
+#     address = models.TextField(blank=True, null=True)
+#     pincode = models.BigIntegerField(blank=True, null=True)
+#     profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     # 🔹 Required for Django Admin
+#     is_staff = models.BooleanField(default=False)
+#     is_active = models.BooleanField(default=True)  # needed to allow login
+
+#     objects = ProfileManager()
+
+#     USERNAME_FIELD = "email"
+#     REQUIRED_FIELDS = ["username"]
+
+#     def __str__(self):
+#         return self.email
+
+class ProfileManager(BaseUserManager):
+    def create_user(self, email, username, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Users must have an email address")
+        if not username:
+            raise ValueError("Users must have a username")
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, username=username, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, username, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+        return self.create_user(email, username, password, **extra_fields)
 
 
-class Profile(models.Model):
+class Profile(AbstractBaseUser, PermissionsMixin):
     GENDER_CHOICES = [
         ("Male", "Male"),
         ("Female", "Female"),
@@ -30,21 +88,27 @@ class Profile(models.Model):
 
     username = models.CharField(max_length=100, unique=True)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)  # store hashed password
-    role = models.ManyToManyField(Group)
+    password = models.CharField(max_length=255)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     pincode = models.BigIntegerField(blank=True, null=True)
     profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    def save(self, *args, **kwargs):
-        if not self.password.startswith("pbkdf2_"):  # hash only if not hashed
-            self.password = make_password(self.password)
-        super().save(*args, **kwargs)
+    # 🔹 Required for Django Admin
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    objects = ProfileManager()
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username"]
 
     def __str__(self):
-        return self.username
+        return self.email
+
 
 
 class PetType(models.Model):
@@ -59,7 +123,7 @@ class Pet(BaseModel):
 
     name = models.CharField(max_length=100)
     pet_type = models.ForeignKey(PetType, on_delete=models.CASCADE)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES,blank=True, null=True)
     breed = models.CharField(max_length=100, blank=True, null=True)
     color = models.CharField(max_length=50, blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
@@ -116,7 +180,7 @@ class PetAdoption(BaseModel):
         return f"Adoption Request for {self.pet.name} by {self.requestor.username}"
 
 
-class Notification(BaseModel):
+class Notification(models.Model):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE)
     content = models.TextField()
     is_read = models.BooleanField(default=False)

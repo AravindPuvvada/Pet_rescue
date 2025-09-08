@@ -1,38 +1,58 @@
 from django.contrib import admin
 from .models import (
-    Profile, Group, PetType, Pet, PetMedicalHistory,
+    Profile, PetType, Pet, PetMedicalHistory,
     PetReport, PetAdoption, Notification
 )
 from django.utils.html import format_html
 
+
 # -------------------------
 # Profile Admin
 # -------------------------
+# @admin.register(Profile)
+# class ProfileAdmin(admin.ModelAdmin):
+#     list_display = ("username", "email", "gender", "phone", "pincode", "profile_image_tag")
+#     search_fields = ("username", "email", "phone", "pincode")
+#     list_filter = ("gender",)
+#     readonly_fields = ("profile_image_tag",)
+
+#     def profile_image_tag(self, obj):
+#         if obj.profile_image:
+#             return format_html('<img src="{}" style="width:50px;height:50px;border-radius:50%;" />', obj.profile_image.url)
+#         return "-"
+#     profile_image_tag.short_description = "Profile Image"
+from django.contrib.auth.admin import UserAdmin
 @admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("username", "email", "get_roles", "gender", "phone", "pincode", "profile_image_tag")
+class ProfileAdmin(UserAdmin):
+    model = Profile
+    list_display = ("username", "email", "gender", "phone", "pincode", "profile_image_tag", "is_staff", "is_active")
     search_fields = ("username", "email", "phone", "pincode")
-    list_filter = ("gender", "role__name")  # <-- updated
+    list_filter = ("gender", "is_staff", "is_active", "is_superuser")
     readonly_fields = ("profile_image_tag",)
 
-    def get_roles(self, obj):
-        return ", ".join([g.name for g in obj.role.all()])
-    get_roles.short_description = "Roles"
-
+    # 🔹 Define image preview
     def profile_image_tag(self, obj):
         if obj.profile_image:
             return format_html('<img src="{}" style="width:50px;height:50px;border-radius:50%;" />', obj.profile_image.url)
         return "-"
     profile_image_tag.short_description = "Profile Image"
 
+    # 🔹 Field arrangement
+    fieldsets = (
+        (None, {"fields": ("email", "username", "password")}),
+        ("Personal Info", {"fields": ("gender", "phone", "address", "pincode", "profile_image", "profile_image_tag")}),
+        ("Permissions", {"fields": ("is_staff", "is_active", "is_superuser", "groups", "user_permissions")}),
+        ("Important Dates", {"fields": ("last_login",)}),
+    )
 
-# -------------------------
-# Group Admin
-# -------------------------
-@admin.register(Group)
-class GroupAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    search_fields = ("name",)
+    add_fieldsets = (
+        (None, {
+            "classes": ("wide",),
+            "fields": ("email", "username", "password1", "password2", "is_staff", "is_active"),
+        }),
+    )
+
+    ordering = ("email",)
 
 
 # -------------------------

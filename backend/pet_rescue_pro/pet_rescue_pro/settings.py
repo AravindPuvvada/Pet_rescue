@@ -13,9 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path 
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+# read .env file
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -142,10 +141,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Django REST Framework configuration
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+    ],
 }
+
 
 from datetime import timedelta
 
@@ -157,3 +157,8 @@ SIMPLE_JWT = {
 
 
 ADMINS = [('Admin', 'gopim2565@gmail.com')]
+
+AUTH_USER_MODEL = 'pet_rescue_app.Profile'
+
+
+
