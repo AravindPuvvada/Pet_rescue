@@ -1,11 +1,9 @@
-
-
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import (
     ProfileViewSet, PetViewSet, PetTypeViewSet,
     PetMedicalHistoryViewSet, PetReportViewSet, PetAdoptionViewSet,
-    NotificationViewSet, RegisterAPIView, LoginAPIView
+    NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -13,6 +11,8 @@ from rest_framework_simplejwt.views import (
 )
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import AdminNotificationsAPIView
+
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -31,6 +31,8 @@ urlpatterns = [
     path("token/",    TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("profile_details/", ProfileViewSet.as_view({"get": "profile_details"}), name="profile-details"),
+    path("lost-pet-request/", LostPetRequestAPIView.as_view(), name="lost-pet-request"),
+    path("admin/notifications/", AdminNotificationsAPIView.as_view(), name="admin-notifications"),
 ]
 
 # Include all router URLs

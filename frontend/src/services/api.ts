@@ -1,136 +1,207 @@
-// const API_BASE_URL = 'http://localhost:8000/api';
+// src/services/api.ts
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-// class ApiService {
-//   private getAuthHeaders() {
-//     const token = localStorage.getItem('access_token');
-//     return {
-//       'Content-Type': 'application/json',
-//       ...(token && { 'Authorization': `Bearer ${token}` })
-//     };
-//   }
+// ======================
+// Interfaces
+// ======================
+export interface PetData {
+  name: string;
+  pet_type: string;
+  breed: string;
+  color: string;
+  age?: number | null;   // 👈 allow null
+  description: string;
+  city: string;
+  state: string;
+}
+export interface ProfileData {
+  username: string;
+  email: string;
+  password?: string; // only needed on register
+  gender?: string;
+  phone?: string;
+  address?: string;
+  pincode?: string;
+  profile_image?: string;
+}
 
-//   private async handleResponse(response: Response) {
-//     if (!response.ok) {
-//       const error = await response.json().catch(() => ({ message: 'Network error' }));
-//       throw new Error(error.message || `HTTP ${response.status}`);
-//     }
-//     return response.json();
-//   }
+export interface PetReportData {
+  title: string;
+  description: string;
+  location?: string;
+  image?: string;
+}
 
-//   async request(endpoint: string, options: RequestInit = {}) {
-//     const url = `${API_BASE_URL}${endpoint}`;
-//     const response = await fetch(url, {
-//       ...options,
-//       headers: {
-//         ...this.getAuthHeaders(),
-//         ...options.headers,
-//       },
-//     });
-//     return this.handleResponse(response);
-//   }
+export interface AdoptionRequest {
+  pet: number;
+  message: string;
+}
 
-//   // Auth endpoints
-//   async login(email: string, password: string) {
-//     const response = await this.request('/auth/login/', {
-//       method: 'POST',
-//       body: JSON.stringify({ email, password }),
-//     });
-    
-//     if (response.tokens) {
-//       localStorage.setItem('access_token', response.tokens.access);
-//       localStorage.setItem('refresh_token', response.tokens.refresh);
-//     }
-    
-//     return response;
-//   }
+// ======================
+// ApiService
+// ======================
+class ApiService {
+  private getAuthHeaders() {
+    const token = localStorage.getItem('access_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  }
 
-//   async register(userData: {
-//     first_name: string;
-//     last_name: string;
-//     email: string;
-//     username: string;
-//     password: string;
-//   }) {
-//     const response = await this.request('/auth/register/', {
-//       method: 'POST',
-//       body: JSON.stringify({ ...userData, password_confirm: userData.password }),
-//     });
-    
-//     if (response.tokens) {
-//       localStorage.setItem('access_token', response.tokens.access);
-//       localStorage.setItem('refresh_token', response.tokens.refresh);
-//     }
-    
-//     return response;
-//   }
+  private async handleResponse(response: Response) {
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Network error' }));
+      throw new Error(error.detail || error.message || `HTTP ${response.status}`);
+    }
+    return response.json();
+  }
 
-//   logout() {
-//     localStorage.removeItem('access_token');
-//     localStorage.removeItem('refresh_token');
-//   }
+  async request(endpoint: string, options: RequestInit = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...this.getAuthHeaders(),
+        ...options.headers,
+      },
+    });
+    return this.handleResponse(response);
+  }
 
-//   // Pet endpoints
-//   async getPets(filters?: { status?: string; type?: string; search?: string }) {
-//     const params = new URLSearchParams();
-//     if (filters?.status) params.append('status', filters.status);
-//     if (filters?.type) params.append('type', filters.type);
-//     if (filters?.search) params.append('search', filters.search);
-    
-//     const queryString = params.toString();
-//     return this.request(`/pets/${queryString ? `?${queryString}` : ''}`);
-//   }
+  // ======================
+  // Auth endpoints
+  // ======================
+  async login(email: string, password: string) {
+    const response = await this.request('/login/', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
 
-//   async getPet(id: number) {
-//     return this.request(`/pets/${id}/`);
-//   }
+    if (response.access_token) {
+      localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('refresh_token', response.refresh_token);
+    }
 
-//   async createPet(petData: any) {
-//     return this.request('/pets/', {
-//       method: 'POST',
-//       body: JSON.stringify(petData),
-//     });
-//   }
+    return response;
+  }
 
-//   async updatePet(id: number, petData: any) {
-//     return this.request(`/pets/${id}/`, {
-//       method: 'PUT',
-//       body: JSON.stringify(petData),
-//     });
-//   }
+  async register(userData: ProfileData) {
+    return this.request('/register/', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
 
-//   async deletePet(id: number) {
-//     return this.request(`/pets/${id}/`, {
-//       method: 'DELETE',
-//     });
-//   }
+  logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }
 
-//   async getMyPets() {
-//     return this.request('/pets/my_pets/');
-//   }
+  // ======================
+  // Pet endpoints
+  // ======================
+  async getPets() {
+    return this.request('/pets/');
+  }
 
-//   async getPetStats() {
-//     return this.request('/pets/stats/');
-//   }
+  async getPet(id: number) {
+    return this.request(`/pets/${id}/`);
+  }
 
-//   // User endpoints
-//   async getUsers() {
-//     return this.request('/users/');
-//   }
+  async createPet(petData: PetData) {
+    return this.request('/pets/', {
+      method: 'POST',
+      body: JSON.stringify(petData),
+    });
+  }
 
-//   async getUser(id: number) {
-//     return this.request(`/users/${id}/`);
-//   }
+  async createPetWithImage(petData: FormData) {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/pets/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: petData,
+    });
+    return this.handleResponse(response);
+  }
 
-//   async updateUser(id: number, userData: any) {
-//     return this.request(`/users/${id}/`, {
-//       method: 'PUT',
-//       body: JSON.stringify(userData),
-//     });
-//   }
+  async updatePet(id: number, petData: PetData) {
+    return this.request(`/pets/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(petData),
+    });
+  }
 
-//   isAuthenticated() {
-//     return !!localStorage.getItem('access_token');
-//   }
-// }
+  async deletePet(id: number) {
+    return this.request(`/pets/${id}/`, {
+      method: 'DELETE',
+    });
+  }
 
-// export const apiService = new ApiService();
+  // ======================
+  // Profile endpoints
+  // ======================
+  async getProfile() {
+    return this.request('/profile_details/');
+  }
+
+  async updateProfile(profileData: ProfileData) {
+    return this.request('/profiles/', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  // ======================
+  // Pet Report endpoints
+  // ======================
+  async getPetReports() {
+    return this.request('/pet-reports/');
+  }
+
+  async createPetReport(reportData: PetReportData) {
+    return this.request('/pet-reports/', {
+      method: 'POST',
+      body: JSON.stringify(reportData),
+    });
+  }
+
+  async createPetReportWithImage(reportData: FormData) {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/pet-reports/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: reportData,
+    });
+    return this.handleResponse(response);
+  }
+
+  // ======================
+  // Pet Adoption endpoints
+  // ======================
+  async getPetAdoptions() {
+    return this.request('/pet-adoptions/');
+  }
+
+  async createAdoptionRequest(petId: number, message: string) {
+    const adoptionData: AdoptionRequest = { pet: petId, message };
+    return this.request('/pet-adoptions/', {
+      method: 'POST',
+      body: JSON.stringify(adoptionData),
+    });
+  }
+
+  // ======================
+  // Utility
+  // ======================
+  isAuthenticated() {
+    return !!localStorage.getItem('access_token');
+  }
+}
+
+export const apiService = new ApiService();

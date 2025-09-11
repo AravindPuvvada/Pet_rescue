@@ -12,53 +12,6 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-
-# class ProfileManager(BaseUserManager):
-#     def create_user(self, email, username, password=None, **extra_fields):
-#         if not email:
-#             raise ValueError("Email is required")
-#         email = self.normalize_email(email)
-#         user = self.model(email=email, username=username, **extra_fields)
-#         user.set_password(password)
-#         user.save(using=self._db)
-#         return user
-
-#     def create_superuser(self, email, username, password=None, **extra_fields):
-#         extra_fields.setdefault("is_staff", True)
-#         extra_fields.setdefault("is_superuser", True)
-#         return self.create_user(email, username, password, **extra_fields)
-
-
-# class Profile(AbstractBaseUser, PermissionsMixin, BaseModel):
-#     GENDER_CHOICES = [
-#         ("Male", "Male"),
-#         ("Female", "Female"),
-#         ("Other", "Other"),
-#     ]
-
-#     username = models.CharField(max_length=100, unique=True)
-#     email = models.EmailField(unique=True)
-#     password = models.CharField(max_length=255)
-#     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
-#     phone = models.CharField(max_length=15, blank=True, null=True)
-#     address = models.TextField(blank=True, null=True)
-#     pincode = models.BigIntegerField(blank=True, null=True)
-#     profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
-
-#     # 🔹 Required for Django Admin
-#     is_staff = models.BooleanField(default=False)
-#     is_active = models.BooleanField(default=True)  # needed to allow login
-
-#     objects = ProfileManager()
-
-#     USERNAME_FIELD = "email"
-#     REQUIRED_FIELDS = ["username"]
-
-#     def __str__(self):
-#         return self.email
-
 class ProfileManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
         if not email:
@@ -183,7 +136,12 @@ class PetAdoption(BaseModel):
 class Notification(models.Model):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE)
     content = models.TextField()
+    pet = models.ForeignKey(Pet, on_delete=models.SET_NULL, null=True, blank=True)
+    report = models.ForeignKey(PetReport, on_delete=models.SET_NULL, null=True, blank=True)
     is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Notification from {self.sender.username}"
+
+

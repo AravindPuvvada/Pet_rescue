@@ -9,7 +9,7 @@ from .models import (
 from .serializers import (
     ProfileSerializer, PetTypeSerializer, PetSerializer,
     PetMedicalHistorySerializer, PetReportSerializer,
-    PetAdoptionSerializer, NotificationSerializer, LoginSerializer
+    PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer
 )
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -21,7 +21,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import UntypedToken
 from django.conf import settings
 import jwt
-
+from django.db import transaction
+from .models import Notification
 # -------------------------
 # PetType ViewSet
 # -------------------------
@@ -193,7 +194,129 @@ class LoginAPIView(APIView):
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+# -------------------------
+# LostPetRequestAPIView
+# -------------------------
+class LostPetRequestAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user  # Profile object
+
+        data = request.data
+        pet_data = data.get("pet")
+        report_data = data.get("report")
+        medical_history_data = data.get("medical_history")
+
+        if not pet_data or not report_data:
+            return Response(
+                {"error": "Pet and Report data are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 1️⃣ Create Pet
+        pet_serializer = PetSerializer(data=pet_data, context={"request": request})
+        if pet_serializer.is_valid():
+            pet = pet_serializer.save(created_by=user, modified_by=user)
+        else:
+            return Response({"pet": pet_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2️⃣ Create PetReport
+        report_serializer = PetReportSerializer(data=report_data, context={"request": request})
+        if report_serializer.is_valid():
+            report = report_serializer.save(user=user, pet=pet, created_by=user, modified_by=user)
+        else:
+            return Response({"report": report_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 3️⃣ Create PetMedicalHistory (if vaccinated or diseased)
+        if pet.is_vaccinated or pet.is_diseased:
+            medical_serializer = PetMedicalHistorySerializer(
+                data=medical_history_data,
+                context={"request": request, "pet": pet}  # pass pet in context
+            )
+            if medical_serializer.is_valid():
+                medical_serializer.save()  # pet and user are already in create() via context
+            else:
+                return Response(
+                    {"medical_history": medical_serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # 4️⃣ Create Notification for Admin
+         # 4️⃣ Create Notification for Admin
+        notification = Notification.objects.create(
+            sender=user,
+            content=f"New lost pet reported: {pet.name}",
+            pet=pet,
+            report=report
+        )
+
+        return Response({
+            "message": "Lost pet request submitted successfully",
+            "pet_id": pet.id,
+            "report_id": report.id,
+            "notification_id": notification.id
+        }, status=status.HTTP_201_CREATED)
+    
+
+    def get(self, request):
+        user = request.user  
+
+        # ✅ Step 2: filter Lost pets whose reports are Accepted
+        reports = PetReport.objects.filter(
+            pet_status="Lost",
+            report_status="Accepted"
+        )
+
+        data = []
+        for report in reports:
+            data.append({
+                "report_id": report.id,
+                "report_status": report.report_status,
+                "pet_status": report.pet_status,
+                "image": report.image.url if report.image else None,
+                "pet": {
+                    "id": report.pet.id,
+                    "name": report.pet.name,
+                    "pet_type": str(report.pet.pet_type) if report.pet.pet_type else None,
+                    "breed": report.pet.breed,
+                    "age": report.pet.age,
+                    "color": report.pet.color,
+                }
+            })
+
+        return Response({"lost_pets": data}, status=status.HTTP_200_OK)
 
 
+# -------------------------
+# AdminNotificationsAPIView
+# -------------------------
+class AdminNotificationsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        user = request.user
 
+        # ✅ Only superusers can access
+        if not user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        # Get all notifications
+        notifications = Notification.objects.all().order_by("-created_at")
+        notification_list = []
+
+        for notif in notifications:
+            # Get pet and report related to this notification
+            pet = getattr(notif, "pet", None)
+            report = getattr(notif, "report", None)
+
+            notification_list.append({
+                "notification_id": notif.id,
+                "sender": notif.sender.username if notif.sender else None,
+                "content": notif.content,
+                "created_at": notif.created_at,
+                "pet": PetSerializer(pet).data if pet else None,
+                "report": PetReportSerializer(report).data if report else None
+            })
+
+        return Response({"notifications": notification_list}, status=status.HTTP_200_OK)

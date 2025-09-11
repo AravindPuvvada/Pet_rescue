@@ -75,31 +75,14 @@ const HomePage: React.FC = () => {
     <>
       <style>{styles}</style>
       <div className="min-h-screen bg-white overflow-hidden">
-        {/* Floating Paw Icons */}
         <FloatingPaws />
-
-        {/* Navigation */}
         <Navigation />
-
-        {/* Hero Section */}
         <HeroSection />
-
-        {/* About Section */}
         <AboutSection />
-
-        {/* Features Section */}
         <FeaturesSection />
-
-        {/* Stats Section */}
         <StatsSection />
-
-        {/* Success Stories Section */}
         <SuccessStoriesSection />
-
-        {/* Call to Action Section */}
         <CallToActionSection />
-
-        {/* Footer */}
         <Footer />
       </div>
     </>

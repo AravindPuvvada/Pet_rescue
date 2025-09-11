@@ -3,9 +3,10 @@ from .models import (
     Profile, PetType, Pet, PetMedicalHistory,
     PetReport, PetAdoption, Notification
 )
-
 from django.contrib.auth.hashers import make_password, check_password
+from django.conf import settings
 
+# ---------------- ProfileSerializer ----------------
 class ProfileSerializer(serializers.ModelSerializer):
     profile_image = serializers.ImageField(required=False, allow_null=True)
 
@@ -29,10 +30,11 @@ class PetTypeSerializer(serializers.ModelSerializer):
         model = PetType
         fields = ["id", "type"]
 
+# ---------------- PetSerializer ----------------
 class PetSerializer(serializers.ModelSerializer):
     pet_type = serializers.SlugRelatedField(
         queryset=PetType.objects.all(),
-        slug_field="type"  # use the 'type' field of PetType
+        slug_field="type"
     )
     created_by = ProfileSerializer(read_only=True)
     modified_by = ProfileSerializer(read_only=True)
@@ -48,15 +50,18 @@ class PetSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
+        if not obj.image:
+            return None
         request = self.context.get("request")
-        if obj.image:
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
-        return None
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return f"{settings.MEDIA_URL}{obj.image.name}"
 
+# ---------------- PetReportSerializer ----------------
 class PetReportSerializer(serializers.ModelSerializer):
-    pet = serializers.PrimaryKeyRelatedField(queryset=Pet.objects.all())  # Accept pet ID from frontend
-    user = serializers.PrimaryKeyRelatedField(read_only=True)  # Automatically set
-    image = serializers.ImageField(required=False, allow_null=True)
+    pet = serializers.PrimaryKeyRelatedField(read_only=True)
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = PetReport
@@ -66,26 +71,45 @@ class PetReportSerializer(serializers.ModelSerializer):
             "created_date", "modified_date", "created_by", "modified_by"
         ]
 
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return f"{settings.MEDIA_URL}{obj.image.name}"
+
     def create(self, validated_data):
-        # Set the user from request
         request = self.context.get("request")
         if request and hasattr(request, "user"):
             validated_data["user"] = request.user
         return super().create(validated_data)
 
 
+
 # ---------------- Pet Medical History ----------------
 class PetMedicalHistorySerializer(serializers.ModelSerializer):
-    pet = PetSerializer(read_only=True)
-
     class Meta:
         model = PetMedicalHistory
         fields = [
-            "id", "pet", "last_vaccinated_date", "vaccination_name",
-            "disease_name", "stage", "no_of_years",
-            "created_date", "modified_date", "created_by", "modified_by"
+            "last_vaccinated_date", "vaccination_name",
+            "disease_name", "stage", "no_of_years"
         ]
 
+    def create(self, validated_data):
+        pet = self.context.get("pet")
+        user = self.context.get("request").user if self.context.get("request") else None
+
+        if not pet:
+            raise serializers.ValidationError({"pet": "Pet instance is required"})
+
+        return PetMedicalHistory.objects.create(
+            pet=pet,
+            created_by=user,
+            modified_by=user,
+            **validated_data
+        )
 
 
 # ---------------- Pet Adoption ----------------
@@ -100,18 +124,46 @@ class PetAdoptionSerializer(serializers.ModelSerializer):
             "created_date", "modified_date", "created_by", "modified_by"
         ]
 
-
 # ---------------- Notification ----------------
 class NotificationSerializer(serializers.ModelSerializer):
     sender = ProfileSerializer(read_only=True)
+    pet = PetSerializer(read_only=True)
+    report = PetReportSerializer(read_only=True)
 
     class Meta:
         model = Notification
-        fields = ["id", "sender", "content", "is_read",
-                  "created_date", "modified_date", "created_by", "modified_by"]
+        fields = [
+            "id",
+            "sender",
+            "content",
+            "pet",
+            "report",
+            "is_read",
+            "created_at",
+            "modified_date",
+            "created_by",
+            "modified_by"
+        ]
 
 
 # ---------------- Login Serializer ----------------
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+
+
+# ---------------- Lost Pet Request (Nested) ----------------
+class LostPetRequestSerializer(serializers.Serializer):
+    pet = PetSerializer()
+    report = PetReportSerializer()
+    medical_history = PetMedicalHistorySerializer(required=False)
+
+# ---------------- AdminNotificationSerializer ----------------
+class AdminNotificationSerializer(serializers.ModelSerializer):
+    pet = PetSerializer(source="sender_pet", read_only=True)
+    report = PetReportSerializer(source="sender_report", read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ["id", "sender", "content", "pet", "report", "created_at"]
+
