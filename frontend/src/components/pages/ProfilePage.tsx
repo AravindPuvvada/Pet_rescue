@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Edit2, Save, X, LogOut } from 'lucide-react';
 import { apiService } from '../../services/api';
-
-interface UserProfile {
-  id: number;
-  username: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  pincode?: string;
-  gender?: string;
-  profile_image?: string;
-}
+import type { User as UserType } from '../../services/api';
 
 interface ProfilePageProps {
   onLogout: () => void;
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -37,6 +29,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
 
   const fetchProfile = async () => {
     try {
+      setFetchLoading(true);
+      setError(null);
       const data = await apiService.getProfile();
       setProfile(data);
       setFormData({
@@ -44,30 +38,36 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
         email: data.email || '',
         phone: data.phone || '',
         address: data.address || '',
-        pincode: data.pincode || '',
+        pincode: data.pincode?.toString() || '',
         gender: data.gender || '',
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setError('Failed to load profile data');
+    } finally {
+      setFetchLoading(false);
     }
   };
 
   const handleSave = async () => {
-    setLoading(true);
-    try {
-      await apiService.updateProfile(formData);
-      
-      // Update local state
-      setProfile(prev => prev ? { ...prev, ...formData } : null);
-      setIsEditing(false);
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Error updating profile. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  setError(null);
+  try {
+    const updatedData: Partial<UserType> = {
+      ...formData,
+      pincode: formData.pincode || undefined, // keep as string
+    };
+
+    const updatedProfile = await apiService.updateProfile(updatedData);
+    setProfile(updatedProfile);
+    setIsEditing(false);
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    setError('Failed to update profile');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCancel = () => {
     if (profile) {
@@ -76,7 +76,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
         email: profile.email || '',
         phone: profile.phone || '',
         address: profile.address || '',
-        pincode: profile.pincode || '',
+        pincode: profile.pincode?.toString() || '',
         gender: profile.gender || '',
       });
     }
@@ -93,10 +93,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
     onLogout();
   };
 
-  if (!profile) {
+  if (fetchLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error && !profile) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="text-red-600 mb-4">{error}</div>
+        <button
+          onClick={fetchProfile}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -129,13 +143,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
       {/* Profile Card */}
       <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
         <div className="flex items-center space-x-6 mb-8">
           <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-            {profile.profile_image ? (
+            {profile?.profile_image ? (
               <img
-                src={profile.profile_image}
+                src={apiService.getImageUrl(profile.profile_image)}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover"
               />
@@ -144,9 +165,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
             )}
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{profile.username}</h2>
-            <p className="text-gray-600">{profile.email}</p>
-            <p className="text-sm text-gray-500 mt-1">Member since {new Date().getFullYear()}</p>
+            <h2 className="text-2xl font-bold text-gray-900">{profile?.username}</h2>
+            <p className="text-gray-600">{profile?.email}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Member since {profile?.created_at ? new Date(profile.created_at).getFullYear() : new Date().getFullYear()}
+            </p>
           </div>
         </div>
 
@@ -167,7 +190,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">{profile.username}</p>
+                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">{profile?.username}</p>
               )}
             </div>
 
@@ -185,7 +208,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">{profile.email}</p>
+                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">{profile?.email}</p>
               )}
             </div>
 
@@ -205,7 +228,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                 />
               ) : (
                 <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile.phone || 'Not provided'}
+                  {profile?.phone || 'Not provided'}
                 </p>
               )}
             </div>
@@ -230,7 +253,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                 </select>
               ) : (
                 <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile.gender || 'Not specified'}
+                  {profile?.gender || 'Not specified'}
                 </p>
               )}
             </div>
@@ -251,7 +274,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                 />
               ) : (
                 <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile.address || 'Not provided'}
+                  {profile?.address || 'Not provided'}
                 </p>
               )}
             </div>
@@ -272,7 +295,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                 />
               ) : (
                 <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile.pincode || 'Not provided'}
+                  {profile?.pincode || 'Not provided'}
                 </p>
               )}
             </div>

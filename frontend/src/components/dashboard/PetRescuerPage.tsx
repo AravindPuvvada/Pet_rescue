@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Calendar, Heart } from 'lucide-react';
 import { apiService } from '../../services/api';
+import type { PetType } from '../../services/api';
 
 interface Pet {
   id: number;
@@ -19,7 +20,9 @@ interface Pet {
 const PetRescuerPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [pets, setPets] = useState<Pet[]>([]);
+  const [petTypes, setPetTypes] = useState<PetType[]>([]);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     pet_type: '',
@@ -34,15 +37,38 @@ const PetRescuerPage: React.FC = () => {
 
   useEffect(() => {
     fetchFoundPets();
+    fetchPetTypes();
   }, []);
 
+  const fetchPetTypes = async () => {
+    try {
+      const types = await apiService.getPetTypes();
+      setPetTypes(types);
+    } catch (error) {
+      console.error('Error fetching pet types:', error);
+    }
+  };
   const fetchFoundPets = async () => {
     try {
-      const data = await apiService.getPets();
-      // Filter for found pets (you might want to add a status field to distinguish)
-      setPets(data);
+      const response = await apiService.getPetsByTab('found');
+      // Convert PetReport format to Pet format for display
+      const petsData = response.results.map((report: any) => ({
+        id: report.pet.id,
+        name: report.pet.name || 'Unknown',
+        pet_type: report.pet.pet_type || '',
+        breed: report.pet.breed || '',
+        color: report.pet.color || '',
+        age: report.pet.age || 0,
+        description: report.pet.description || '',
+        city: report.pet.city || '',
+        state: report.pet.state || '',
+        image: report.image || report.pet.image,
+        created_date: report.created_date || new Date().toISOString()
+      }));
+      setPets(petsData);
     } catch (error) {
       console.error('Error fetching pets:', error);
+      setMessage({ text: 'Failed to fetch found pets', type: 'error' });
     }
   };
 
@@ -51,31 +77,52 @@ const PetRescuerPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Create pet first
-      const petData = {
-        name: formData.name || 'Unknown',
-        pet_type: formData.pet_type,
-        breed: formData.breed,
-        color: formData.color,
-        age: formData.age ? parseInt(formData.age) : null,
-        description: formData.description,
-        city: formData.city,
-        state: formData.state,
+      // Create found pet request similar to lost pet request
+      const requestData = {
+        pet: {
+          name: formData.name || 'Unknown',
+          pet_type: formData.pet_type,
+          breed: formData.breed,
+          color: formData.color,
+          age: formData.age ? parseInt(formData.age) : undefined,
+          description: formData.description,
+          city: formData.city,
+          state: formData.state,
+          is_diseased: false,
+          is_vaccinated: false,
+        },
+        report: {
+          pet_status: 'Found',
+          report_status: 'Pending',
+        }
       };
 
-      const createdPet = await apiService.createPet(petData);
+      // Create the pet and report
+      const formDataToSend = new FormData();
+      formDataToSend.append('pet', JSON.stringify(requestData.pet));
+      formDataToSend.append('report', JSON.stringify(requestData.report));
       
-      // Then create a pet report for "Found" status
-      const reportFormData = new FormData();
-      reportFormData.append('pet', createdPet.id.toString());
-      reportFormData.append('pet_status', 'Found');
       if (formData.image) {
-        reportFormData.append('image', formData.image);
+        formDataToSend.append('report_image', formData.image);
       }
 
-      await apiService.createPetReportWithImage(reportFormData);
+      // Use the lost-pet-request endpoint but modify for found pets
+      // You might want to create a separate found-pet-request endpoint
+      const response = await fetch('http://127.0.0.1:8000/api/lost-pet-request/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: formDataToSend
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to report found pet');
+      }
+
       await fetchFoundPets();
       setShowForm(false);
+      setMessage({ text: 'Found pet reported successfully!', type: 'success' });
       setFormData({
         name: '',
         pet_type: '',
@@ -89,6 +136,7 @@ const PetRescuerPage: React.FC = () => {
       });
     } catch (error) {
       console.error('Error creating pet:', error);
+      setMessage({ text: 'Failed to report found pet', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -119,6 +167,12 @@ const PetRescuerPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Success/Error Message */}
+      {message && (
+        <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {message.text}
+        </div>
+      )}
       {/* Upload Form */}
       {showForm && (
         <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
@@ -132,15 +186,20 @@ const PetRescuerPage: React.FC = () => {
               onChange={handleChange}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
-            <input
-              type="text"
+            <select
               name="pet_type"
-              placeholder="Pet Type (Dog, Cat, etc.)"
               value={formData.pet_type}
               onChange={handleChange}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
-            />
+            >
+              <option value="">Select Pet Type</option>
+              {petTypes.map((type) => (
+                <option key={type.id} value={type.type}>
+                  {type.type}
+                </option>
+              ))}
+            </select>
             <input
               type="text"
               name="breed"

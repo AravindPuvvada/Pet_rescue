@@ -15,26 +15,49 @@ interface Pet {
   image?: string;
   created_date: string;
 }
+interface PetAdoption {
+  id: number;
+  pet: Pet;
+  created_date: string;
+}
 
 const PetAdopterPage: React.FC = () => {
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [adoptionMessage, setAdoptionMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     fetchAvailablePets();
   }, []);
 
   const fetchAvailablePets = async () => {
-    try {
-      const data = await apiService.getPets();
-      // Filter for pets available for adoption
-      setPets(data);
-    } catch (error) {
-      console.error('Error fetching pets:', error);
-    }
-  };
+  try {
+    const response = await apiService.getPetsByTab('adopt') as { results: PetAdoption[] };
+
+    // Convert PetAdoption format to Pet format for display
+    const petsData: Pet[] = response.results.map((adoption: PetAdoption) => ({
+      id: adoption.pet.id,
+      name: adoption.pet.name,
+      pet_type: adoption.pet.pet_type || '',
+      breed: adoption.pet.breed || '',
+      color: adoption.pet.color || '',
+      age: adoption.pet.age || 0,
+      description: adoption.pet.description || '',
+      city: adoption.pet.city || '',
+      state: adoption.pet.state || '',
+      image: adoption.pet.image,
+      created_date: adoption.created_date || new Date().toISOString()
+    }));
+
+    setPets(petsData);
+  } catch (error) {
+    console.error('Error fetching pets:', error);
+    setMessage({ text: 'Failed to fetch available pets', type: 'error' });
+  }
+};
+
 
   const handleAdoptionRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,15 +65,20 @@ const PetAdopterPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await apiService.createAdoptionRequest(selectedPet.id, adoptionMessage);
+      await apiService.createPetAdoption({
+        pet: selectedPet.id,
+        message: adoptionMessage,
+        status: 'Pending'
+      });
       
       // Reset form
       setSelectedPet(null);
       setAdoptionMessage('');
-      alert('Adoption request submitted successfully!');
+      setMessage({ text: 'Adoption request submitted successfully!', type: 'success' });
+      await fetchAvailablePets();
     } catch (error) {
       console.error('Error submitting adoption request:', error);
-      alert('Error submitting adoption request. Please try again.');
+      setMessage({ text: 'Failed to submit adoption request', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -64,6 +92,12 @@ const PetAdopterPage: React.FC = () => {
         <p className="text-gray-600">Find your perfect companion and give them a loving home</p>
       </div>
 
+      {/* Success/Error Message */}
+      {message && (
+        <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {message.text}
+        </div>
+      )}
       {/* Adoption Request Form */}
       {selectedPet && (
         <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
@@ -74,7 +108,7 @@ const PetAdopterPage: React.FC = () => {
             <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
               {selectedPet.image && (
                 <img
-                  src={selectedPet.image}
+                  src={apiService.getImageUrl(selectedPet.image)}
                   alt={selectedPet.name}
                   className="w-16 h-16 object-cover rounded-lg"
                 />
@@ -122,7 +156,7 @@ const PetAdopterPage: React.FC = () => {
           <div key={pet.id} className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow">
             {pet.image && (
               <img
-                src={pet.image}
+                src={apiService.getImageUrl(pet.image)}
                 alt={pet.name}
                 className="w-full h-48 object-cover"
               />

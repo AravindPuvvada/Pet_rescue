@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Heart, MapPin, Calendar, Send, Search } from 'lucide-react';
 import { apiService } from '../../services/api';
 
+
 interface Pet {
   id: number;
   name: string;
@@ -12,6 +13,12 @@ interface Pet {
   description: string;
   city: string;
   state: string;
+  image?: string;
+  created_date: string;
+}
+interface PetReport {
+  id: number;
+  pet: Pet;
   image?: string;
   created_date: string;
 }
@@ -41,14 +48,29 @@ const RescuedPetsPage: React.FC = () => {
   }, [pets, searchTerm]);
 
   const fetchRescuedPets = async () => {
-    try {
-      const data = await apiService.getPets();
-      // Filter for rescued/found pets
-      setPets(data);
-    } catch (error) {
-      console.error('Error fetching rescued pets:', error);
-    }
-  };
+  try {
+    const response = await apiService.getPetsByTab('found') as { results: PetReport[] };
+    
+    const petsData: Pet[] = response.results.map((report: PetReport) => ({
+      id: report.pet.id,
+      name: report.pet.name || 'Unknown',
+      pet_type: report.pet.pet_type || '',
+      breed: report.pet.breed || '',
+      color: report.pet.color || '',
+      age: report.pet.age || 0,
+      description: report.pet.description || '',
+      city: report.pet.city || '',
+      state: report.pet.state || '',
+      image: report.image || report.pet.image,
+      created_date: report.created_date || new Date().toISOString()
+    }));
+    
+    setPets(petsData);
+  } catch (error) {
+    console.error('Error fetching rescued pets:', error);
+  }
+};
+
 
   const handleClaimRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,16 +78,21 @@ const RescuedPetsPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // Create an adoption request with claim message
-      await apiService.createAdoptionRequest(selectedPet.id, `CLAIM REQUEST: ${requestMessage}`);
+      // Create a pet adoption request for claiming
+      await apiService.createPetAdoption({
+  pet: selectedPet.id,
+  message: requestMessage,
+  status: 'Pending'
+});
       
       // Reset form
       setSelectedPet(null);
       setRequestMessage('');
       alert('Claim request submitted successfully! The rescuer will contact you soon.');
+      await fetchRescuedPets();
     } catch (error) {
       console.error('Error submitting claim request:', error);
-      alert('Error submitting claim request. Please try again.');
+      alert('Failed to submit claim request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -149,7 +176,7 @@ const RescuedPetsPage: React.FC = () => {
           <div key={pet.id} className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow">
             {pet.image && (
               <img
-                src={pet.image}
+                src={apiService.getImageUrl(pet.image)}
                 alt={pet.name}
                 className="w-full h-48 object-cover"
               />
