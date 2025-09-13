@@ -134,14 +134,26 @@ class PetAdoption(BaseModel):
 
 
 class Notification(models.Model):
-    sender = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    sender = models.ForeignKey(Profile, on_delete=models.CASCADE)  # Who created/sent the notification
+    receiver = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)  
+    # ← NEW: Who should receive the notification
+
     content = models.TextField()
-    pet = models.ForeignKey(Pet, on_delete=models.SET_NULL, null=True, blank=True)
-    report = models.ForeignKey(PetReport, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    pet = models.ForeignKey(Pet, on_delete=models.SET_NULL, null=True, blank=True)  
+    # ← Already exists: links notification to a specific pet
+
+    report = models.ForeignKey(PetReport, on_delete=models.SET_NULL, null=True, blank=True)  
+    # ← Already exists: links notification to a specific pet report
+
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Notification from {self.sender.username}"
+        receiver_name = self.receiver.username if self.receiver else "Unknown"
+        return f"Notification from {self.sender.username} to {receiver_name}"
+
+
+
 
 

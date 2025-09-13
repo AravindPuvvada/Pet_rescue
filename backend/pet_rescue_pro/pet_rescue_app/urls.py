@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ProfileViewSet, PetViewSet, PetTypeViewSet,
     PetMedicalHistoryViewSet, PetReportViewSet, PetAdoptionViewSet,
-    NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView
+    NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView, PetsListAPIView, AdminApprovalAPIView, UserNotificationsAPIView, UserRequestsListAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -33,6 +33,10 @@ urlpatterns = [
     path("profile_details/", ProfileViewSet.as_view({"get": "profile_details"}), name="profile-details"),
     path("lost-pet-request/", LostPetRequestAPIView.as_view(), name="lost-pet-request"),
     path("admin/notifications/", AdminNotificationsAPIView.as_view(), name="admin-notifications"),
+    path("pets-list/", PetsListAPIView.as_view(), name="pets-list"),
+    path("admin/approve/", AdminApprovalAPIView.as_view(), name="admin-approve"),
+    path("get-notifications/", UserNotificationsAPIView.as_view(), name="user-notifications"),
+     path('my-requests/', UserRequestsListAPIView.as_view(), name='my-requests'),
 ]
 
 # Include all router URLs

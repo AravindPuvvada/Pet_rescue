@@ -46,52 +46,38 @@ const PetOwnerPage: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    // Create FormData instead of JSON
-    const formDataToSend = new FormData();
-    formDataToSend.append('name', formData.name);
-    formDataToSend.append('pet_type', formData.pet_type);
-    formDataToSend.append('breed', formData.breed);
-    formDataToSend.append('color', formData.color);
-    if (formData.age) formDataToSend.append('age', formData.age.toString());
-    formDataToSend.append('description', formData.description);
-    formDataToSend.append('city', formData.city);
-    formDataToSend.append('state', formData.state);
-    if (formData.image) formDataToSend.append('image', formData.image);
+    try {
+      const data = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== '') {
+          data.append(key, value as string | Blob);
+        }
+      });
 
-    // Send to backend
-    const createdPet = await apiService.createPetWithImage(formDataToSend);
+      await apiService.createPetWithImage(data);
+      await fetchPets();
+      setShowForm(false);
+      setFormData({
+        name: '',
+        pet_type: '',
+        breed: '',
+        color: '',
+        age: '',
+        description: '',
+        city: '',
+        state: '',
+        image: null,
+      });
+    } catch (error) {
+      console.error('Error creating pet:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Then create a pet report
-    const reportFormData = new FormData();
-    reportFormData.append('pet', createdPet.id.toString());
-    reportFormData.append('pet_status', 'Lost');
-    if (formData.image) reportFormData.append('image', formData.image);
-
-    await apiService.createPetReportWithImage(reportFormData);
-
-    await fetchPets();
-    setShowForm(false);
-    setFormData({
-      name: '',
-      pet_type: '',
-      breed: '',
-      color: '',
-      age: '',
-      description: '',
-      city: '',
-      state: '',
-      image: null,
-    });
-  } catch (error) {
-    console.error('Error creating pet:', error);
-  } finally {
-    setLoading(false);
-  }
-};
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, files } = e.target as HTMLInputElement;
     setFormData(prev => ({

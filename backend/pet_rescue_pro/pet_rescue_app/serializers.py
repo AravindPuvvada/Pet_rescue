@@ -126,24 +126,24 @@ class PetAdoptionSerializer(serializers.ModelSerializer):
 
 # ---------------- Notification ----------------
 class NotificationSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer(read_only=True)
-    pet = PetSerializer(read_only=True)
-    report = PetReportSerializer(read_only=True)
+    sender = ProfileSerializer(read_only=True)  # Sender details
+    receiver = ProfileSerializer(read_only=True)  # ← NEW: Receiver details
+    pet = PetSerializer(read_only=True)          # Pet details
+    report = PetReportSerializer(read_only=True) # Report details
 
     class Meta:
         model = Notification
         fields = [
             "id",
             "sender",
+            "receiver",  # ← NEW
             "content",
             "pet",
             "report",
             "is_read",
-            "created_at",
-            "modified_date",
-            "created_by",
-            "modified_by"
+            "created_at"
         ]
+
 
 
 # ---------------- Login Serializer ----------------
@@ -166,4 +166,51 @@ class AdminNotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ["id", "sender", "content", "pet", "report", "created_at"]
+
+
+
+class PetReportListSerializer(serializers.ModelSerializer):
+    pet = PetSerializer(read_only=True)
+
+    class Meta:
+        model = PetReport
+        fields = ["id", "pet_status", "report_status", "image", "pet"]
+
+class PetAdoptionListSerializer(serializers.ModelSerializer):
+    pet = PetSerializer(read_only=True)
+    requestor = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = PetAdoption
+        fields = ["id", "pet", "requestor", "message", "status"]
+
+
+class AdminApprovalSerializer(serializers.Serializer):
+    request_type = serializers.ChoiceField(choices=["lost", "found", "adopt"])
+    pet_id = serializers.IntegerField()
+    action = serializers.ChoiceField(choices=["approve", "reject"])
+
+
+class UserPetReportSerializer(serializers.ModelSerializer):
+    pet_name = serializers.CharField(source="pet.name", read_only=True)
+
+    class Meta:
+        model = PetReport
+        fields = [
+            "id",
+            "pet_name",
+            "pet_status",     # ✅ instead of report_type
+            "report_status",
+            "image",
+            "is_resolved",
+        ]
+
+
+
+class UserAdoptionRequestSerializer(serializers.ModelSerializer):
+    pet_name = serializers.CharField(source="pet.name", read_only=True)
+
+    class Meta:
+        model = PetAdoption
+        fields = ["id", "pet_name", "status"]
 

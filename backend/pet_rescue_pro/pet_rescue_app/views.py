@@ -9,7 +9,7 @@ from .models import (
 from .serializers import (
     ProfileSerializer, PetTypeSerializer, PetSerializer,
     PetMedicalHistorySerializer, PetReportSerializer,
-    PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer
+    PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer, PetReportListSerializer, PetAdoptionListSerializer, AdminApprovalSerializer, UserPetReportSerializer, UserAdoptionRequestSerializer
 )
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -320,3 +320,143 @@ class AdminNotificationsAPIView(APIView):
             })
 
         return Response({"notifications": notification_list}, status=status.HTTP_200_OK)
+    
+
+
+# -------------------------
+# Pets List API
+# -------------------------
+class PetsListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        tab = request.query_params.get("tab")
+        if not tab:
+            return Response({"error": "Tab parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = []
+
+        if tab.lower() == "lost":
+            reports = PetReport.objects.filter(pet_status="Lost", report_status="Accepted")
+            data = PetReportSerializer(reports, many=True, context={"request": request}).data
+
+        elif tab.lower() == "found":
+            reports = PetReport.objects.filter(pet_status="Found", report_status="Accepted")
+            data = PetReportSerializer(reports, many=True, context={"request": request}).data
+
+        elif tab.lower() == "adopt":
+            adoptions = PetAdoption.objects.filter(status="Approved")
+            data = PetAdoptionListSerializer(adoptions, many=True, context={"request": request}).data
+
+        else:
+            return Response({"error": "Invalid tab value"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"results": data}, status=status.HTTP_200_OK)
+
+
+# -------------------------
+# Admin Approval API
+# -------------------------
+class AdminApprovalAPIView(APIView):
+    permission_classes = [IsAuthenticated]  # Only logged-in users
+
+    def post(self, request):
+        # ✅ Superuser check
+        if not request.user.is_superuser:
+            return Response(
+                {"error": "Only admin can approve or reject requests"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = AdminApprovalSerializer(data=request.data)
+        if serializer.is_valid():
+            request_type = serializer.validated_data["request_type"]
+            pet_id = serializer.validated_data["pet_id"]
+            action = serializer.validated_data["action"]
+
+            # LOST or FOUND
+            if request_type in ["lost", "found"]:
+                pet_status = "Lost" if request_type == "lost" else "Found"
+                try:
+                    report = PetReport.objects.get(pet__id=pet_id, pet_status=pet_status)
+                    report.report_status = "Accepted" if action == "approve" else "Rejected"
+                    report.save()
+
+                    # Notification with receiver
+                    Notification.objects.create(
+                        sender=request.user,                     # Admin
+                        receiver=report.user,                    # ← NEW: user who created the report
+                        content=f"Your {request_type} pet request is {report.report_status.lower()}",
+                        pet=report.pet,
+                        report=report
+                    )
+                    return Response(
+                        {"message": f"{request_type.capitalize()} pet request {report.report_status.lower()} successfully"},
+                        status=status.HTTP_200_OK
+                    )
+                except PetReport.DoesNotExist:
+                    return Response({"error": "Pet report not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            # ADOPTION
+            elif request_type == "adopt":
+                try:
+                    adoption = PetAdoption.objects.get(pet__id=pet_id)
+                    adoption.status = "Approved" if action == "approve" else "Rejected"
+                    adoption.save()
+
+                    # Notification with receiver
+                    Notification.objects.create(
+                        sender=request.user,                      # Admin
+                        receiver=adoption.requestor,             # ← NEW: user who requested adoption
+                        content=f"Your adoption request is {adoption.status.lower()}",
+                        pet=adoption.pet
+                    )
+                    return Response(
+                        {"message": f"Adoption request {adoption.status.lower()} successfully"},
+                        status=status.HTTP_200_OK
+                    )
+                except PetAdoption.DoesNotExist:
+                    return Response({"error": "Adoption request not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# -------------------------
+# Show Notifications API
+# -------------------------
+class UserNotificationsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user  # Get logged-in user
+
+        # Get all notifications for this user, order by latest
+        notifications = Notification.objects.filter(receiver=user).order_by('-created_at')
+
+        serializer = NotificationSerializer(notifications, many=True, context={"request": request})
+        return Response({"notifications": serializer.data}, status=status.HTTP_200_OK)
+
+
+
+# -------------------------
+# User Requests List API
+# -------------------------
+class UserRequestsListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = request.user  # Already Profile because Profile is your AUTH_USER_MODEL
+
+        # fetch reports created by this profile
+        reports = PetReport.objects.filter(user=profile)
+
+        # fetch adoption requests made by this profile
+        adoptions = PetAdoption.objects.filter(requestor=profile)
+
+        report_data = UserPetReportSerializer(reports, many=True).data
+        adoption_data = UserAdoptionRequestSerializer(adoptions, many=True).data
+
+        return Response({
+            "reports": report_data,
+            "adoptions": adoption_data
+        }, status=status.HTTP_200_OK)
+

@@ -96,7 +96,7 @@ class PetMedicalHistoryAdmin(admin.ModelAdmin):
 # -------------------------
 @admin.register(PetReport)
 class PetReportAdmin(admin.ModelAdmin):
-    list_display = ("pet", "user", "pet_status", "report_status", "is_resolved", "report_image_tag")
+    list_display = ("pet_id","pet", "user", "pet_status", "report_status", "is_resolved", "report_image_tag")
     search_fields = ("pet__name", "user__username")
     list_filter = ("pet_status", "report_status", "is_resolved")
     readonly_fields = ("report_image_tag",)
@@ -113,7 +113,7 @@ class PetReportAdmin(admin.ModelAdmin):
 # -------------------------
 @admin.register(PetAdoption)
 class PetAdoptionAdmin(admin.ModelAdmin):
-    list_display = ("pet", "requestor", "status")
+    list_display = ("pet_id","pet", "requestor", "status")
     search_fields = ("pet__name", "requestor__username")
     list_filter = ("status",)
 
