@@ -6,7 +6,7 @@ import type { PetType } from '../../services/api';
 interface Pet {
   id: number;
   name: string;
-  pet_type: string;
+  pet_type: string | { type: string };
   breed: string;
   color: string;
   age: number;
@@ -142,13 +142,16 @@ const PetRescuerPage: React.FC = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, files } = e.target as HTMLInputElement;
-    setFormData(prev => ({
-      ...prev,
-      [name]: files ? files[0] : value,
-    }));
-  };
+  const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+) => {
+  const { name, value, files } = e.target as HTMLInputElement;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: files ? files[0] : value,
+  }));
+};
+
 
   return (
     <div className="space-y-6">
@@ -284,7 +287,7 @@ const PetRescuerPage: React.FC = () => {
           <div key={pet.id} className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             {pet.image && (
               <img
-                src={pet.image}
+                src={apiService.getImageUrl(pet.image)}
                 alt={pet.name}
                 className="w-full h-48 object-cover"
               />
@@ -296,7 +299,9 @@ const PetRescuerPage: React.FC = () => {
                   Found
                 </span>
               </div>
-              <p className="text-gray-600 text-sm mb-2">{pet.pet_type} • {pet.breed}</p>
+              <p className="text-gray-600 text-sm mb-2">
+                {typeof pet.pet_type === 'string' ? pet.pet_type : pet.pet_type?.type || 'Unknown'} • {pet.breed}
+              </p>
               <p className="text-gray-600 text-sm mb-3">{pet.description}</p>
               <div className="flex items-center text-gray-500 text-xs space-x-4 mb-3">
                 <div className="flex items-center space-x-1">

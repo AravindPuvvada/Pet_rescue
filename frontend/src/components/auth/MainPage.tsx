@@ -6,6 +6,7 @@ import Dashboard from '../dashboard/Dashboard';
 import RescuedPetsPage from '../pages/RescuedPetsPage';
 import ProfilePage from '../pages/ProfilePage';
 import { apiService } from '../../services/api';
+import LostPetsPage from '../pages/LostPetsPage';
 
 interface User {
   id: number;
@@ -53,6 +54,8 @@ useEffect(() => {
         return <RescuedPetsPage />;
       case 'profile':
         return <ProfilePage onLogout={handleLogout} />;
+      case 'lost-pets': 
+        return <LostPetsPage />;
       default:
         return <Dashboard />;
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Heart, User } from 'lucide-react';
+import { LayoutDashboard, Heart, User, PawPrint } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -19,6 +19,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       icon: Heart,
     },
     {
+      id: 'lost-pets',
+      label: 'Lost Pets',
+      icon: PawPrint,
+    },
+    {
       id: 'profile',
       label: 'Profile',
       icon: User,
@@ -26,9 +31,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   ];
 
   return (
-    <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white shadow-sm border-r border-gray-200 z-40">
-      <div className="p-4">
-        <nav className="space-y-2">
+    <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white/80 backdrop-blur-md shadow-2xl border-r border-white/20 z-40">
+      <div className="p-6">
+        <nav className="space-y-3">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -37,14 +42,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
               <button
                 key={item.id}
                 onClick={() => onSectionChange(item.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                className={`w-full flex items-center space-x-4 px-6 py-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
                   isActive
-                    ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 text-white shadow-xl shadow-orange-200'
+                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 hover:text-gray-900 hover:shadow-lg'
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                <Icon
+  className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-500'} transition-colors duration-300`}
+/>
+                <span className="font-semibold text-sm">{item.label}</span>
               </button>
             );
           })}

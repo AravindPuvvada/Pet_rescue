@@ -5,7 +5,7 @@ import { apiService } from '../../services/api';
 interface Pet {
   id: number;
   name: string;
-  pet_type: string;
+  pet_type: string | { type: string };
   breed: string;
   color: string;
   age: number;
@@ -168,7 +168,9 @@ const PetAdopterPage: React.FC = () => {
                   Available
                 </span>
               </div>
-              <p className="text-gray-600 text-sm mb-2">{pet.pet_type} • {pet.breed}</p>
+              <p className="text-gray-600 text-sm mb-2">
+                {typeof pet.pet_type === 'string' ? pet.pet_type : (pet.pet_type as { type: string })?.type || 'Unknown'} • {pet.breed}
+              </p>
               <p className="text-gray-600 text-sm mb-3 line-clamp-2">{pet.description}</p>
               
               <div className="flex items-center text-gray-500 text-xs space-x-4 mb-4">

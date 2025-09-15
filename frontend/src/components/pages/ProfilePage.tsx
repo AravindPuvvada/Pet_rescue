@@ -1,19 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Edit2, Save, X, LogOut } from 'lucide-react';
 import { apiService } from '../../services/api';
-import type { User as UserType } from '../../services/api';
+
+interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  pincode?: string;
+  gender?: string;
+  profile_image?: string;
+}
 
 interface ProfilePageProps {
   onLogout: () => void;
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
-  const [profile, setProfile] = useState<UserType | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -29,8 +37,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
 
   const fetchProfile = async () => {
     try {
-      setFetchLoading(true);
-      setError(null);
       const data = await apiService.getProfile();
       setProfile(data);
       setFormData({
@@ -38,36 +44,30 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
         email: data.email || '',
         phone: data.phone || '',
         address: data.address || '',
-        pincode: data.pincode?.toString() || '',
+        pincode: data.pincode || '',
         gender: data.gender || '',
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
-      setError('Failed to load profile data');
-    } finally {
-      setFetchLoading(false);
     }
   };
 
   const handleSave = async () => {
-  setLoading(true);
-  setError(null);
-  try {
-    const updatedData: Partial<UserType> = {
-      ...formData,
-      pincode: formData.pincode || undefined, // keep as string
-    };
-
-    const updatedProfile = await apiService.updateProfile(updatedData);
-    setProfile(updatedProfile);
-    setIsEditing(false);
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    setError('Failed to update profile');
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    try {
+      await apiService.updateProfile(formData);
+      
+      // Update local state
+      setProfile(prev => prev ? { ...prev, ...formData } : null);
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCancel = () => {
     if (profile) {
@@ -76,7 +76,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
         email: profile.email || '',
         phone: profile.phone || '',
         address: profile.address || '',
-        pincode: profile.pincode?.toString() || '',
+        pincode: profile.pincode || '',
         gender: profile.gender || '',
       });
     }
@@ -93,92 +93,74 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
     onLogout();
   };
 
-  if (fetchLoading) {
+  if (!profile) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (error && !profile) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <div className="text-red-600 mb-4">{error}</div>
-        <button
-          onClick={fetchProfile}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Retry
-        </button>
+        <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 mt-20">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your account information</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Profile
+          </h1>
+          <p className="text-gray-600 text-lg mt-2">Manage your account information</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex space-x-4">
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center space-x-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold transform hover:scale-105"
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit2 className="w-5 h-5" />
               <span>Edit Profile</span>
             </button>
           )}
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="flex items-center space-x-3 bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold transform hover:scale-105"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-5 h-5" />
             <span>Logout</span>
           </button>
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
       {/* Profile Card */}
-      <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-        <div className="flex items-center space-x-6 mb-8">
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-            {profile?.profile_image ? (
-              <img
-                src={apiService.getImageUrl(profile.profile_image)}
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover"
-              />
-            ) : (
-              <User className="w-12 h-12 text-white" />
-            )}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-10 border border-white/20">
+        <div className="flex items-center space-x-8 mb-10">
+          <div className="relative">
+            <div className="w-32 h-32 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-2xl">
+              {profile.profile_image ? (
+                <img
+                  src={profile.profile_image}
+                  alt="Profile"
+                  className="w-32 h-32 rounded-2xl object-cover"
+                />
+              ) : (
+                <User className="w-16 h-16 text-white" />
+              )}
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white shadow-lg"></div>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{profile?.username}</h2>
-            <p className="text-gray-600">{profile?.email}</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Member since {profile?.created_at ? new Date(profile.created_at).getFullYear() : new Date().getFullYear()}
-            </p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">{profile.username}</h2>
+            <p className="text-gray-600 text-lg mb-1">{profile.email}</p>
+            <p className="text-sm text-gray-500">Member since {new Date().getFullYear()}</p>
           </div>
         </div>
 
         {/* Profile Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <User className="w-4 h-4 inline mr-2" />
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                <User className="w-5 h-5 inline mr-2 text-blue-500" />
                 Username
               </label>
               {isEditing ? (
@@ -187,16 +169,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-300 font-medium"
                 />
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">{profile?.username}</p>
+                <p className="text-gray-900 bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-3 rounded-xl font-medium">{profile.username}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Mail className="w-4 h-4 inline mr-2" />
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                <Mail className="w-5 h-5 inline mr-2 text-green-500" />
                 Email
               </label>
               {isEditing ? (
@@ -205,16 +187,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-300 font-medium"
                 />
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">{profile?.email}</p>
+                <p className="text-gray-900 bg-gradient-to-r from-gray-50 to-green-50 px-6 py-3 rounded-xl font-medium">{profile.email}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Phone className="w-4 h-4 inline mr-2" />
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                <Phone className="w-5 h-5 inline mr-2 text-orange-500" />
                 Phone
               </label>
               {isEditing ? (
@@ -223,20 +205,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-300 font-medium"
                   placeholder="Enter phone number"
                 />
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile?.phone || 'Not provided'}
+                <p className="text-gray-900 bg-gradient-to-r from-gray-50 to-orange-50 px-6 py-3 rounded-xl font-medium">
+                  {profile.phone || 'Not provided'}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 mb-3">
                 Gender
               </label>
               {isEditing ? (
@@ -244,7 +226,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-300 font-medium"
                 >
                   <option value="">Select gender</option>
                   <option value="Male">Male</option>
@@ -252,15 +234,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   <option value="Other">Other</option>
                 </select>
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile?.gender || 'Not specified'}
+                <p className="text-gray-900 bg-gradient-to-r from-gray-50 to-purple-50 px-6 py-3 rounded-xl font-medium">
+                  {profile.gender || 'Not specified'}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-2" />
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                <MapPin className="w-5 h-5 inline mr-2 text-purple-500" />
                 Address
               </label>
               {isEditing ? (
@@ -269,18 +251,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-300 font-medium"
                   placeholder="Enter address"
                 />
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile?.address || 'Not provided'}
+                <p className="text-gray-900 bg-gradient-to-r from-gray-50 to-purple-50 px-6 py-3 rounded-xl font-medium">
+                  {profile.address || 'Not provided'}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 mb-3">
                 Pincode
               </label>
               {isEditing ? (
@@ -289,13 +271,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
                   name="pincode"
                   value={formData.pincode}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-300 font-medium"
                   placeholder="Enter pincode"
                   maxLength={6}
                 />
               ) : (
-                <p className="text-gray-900 bg-gray-50 px-4 py-2 rounded-lg">
-                  {profile?.pincode || 'Not provided'}
+                <p className="text-gray-900 bg-gradient-to-r from-gray-50 to-pink-50 px-6 py-3 rounded-xl font-medium">
+                  {profile.pincode || 'Not provided'}
                 </p>
               )}
             </div>
@@ -304,20 +286,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
 
         {/* Action Buttons */}
         {isEditing && (
-          <div className="flex space-x-3 mt-8 pt-6 border-t border-gray-200">
+          <div className="flex space-x-4 mt-10 pt-8 border-t border-gray-200">
             <button
               onClick={handleCancel}
-              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 flex items-center justify-center space-x-3 px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-300 font-semibold"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
               <span>Cancel</span>
             </button>
             <button
               onClick={handleSave}
               disabled={loading}
-              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-300 disabled:opacity-50 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-5 h-5" />
               <span>{loading ? 'Saving...' : 'Save Changes'}</span>
             </button>
           </div>
@@ -326,20 +308,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onLogout }) => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
-            <div className="flex space-x-3">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl border border-white/20 animate-in slide-in-from-bottom">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">Confirm Logout</h3>
+            <p className="text-gray-600 mb-8 leading-relaxed">Are you sure you want to logout?</p>
+            <div className="flex space-x-4">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-300 font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 Logout
               </button>

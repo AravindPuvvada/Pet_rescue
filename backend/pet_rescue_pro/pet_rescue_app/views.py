@@ -9,7 +9,9 @@ from .models import (
 from .serializers import (
     ProfileSerializer, PetTypeSerializer, PetSerializer,
     PetMedicalHistorySerializer, PetReportSerializer,
-    PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer, PetReportListSerializer, PetAdoptionListSerializer, AdminApprovalSerializer, UserPetReportSerializer, UserAdoptionRequestSerializer
+    PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer,
+      PetReportListSerializer, PetAdoptionListSerializer, AdminApprovalSerializer, UserPetReportSerializer,
+        UserAdoptionRequestSerializer, AdminUserSerializer,AdminPetReportSerializer
 )
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -199,14 +201,24 @@ class LoginAPIView(APIView):
 # -------------------------
 class LostPetRequestAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
         user = request.user  # Profile object
 
         data = request.data
-        pet_data = data.get("pet")
-        report_data = data.get("report")
-        medical_history_data = data.get("medical_history")
+        
+        # Parse JSON data from FormData
+        import json
+        try:
+            pet_data = json.loads(data.get("pet", "{}"))
+            report_data = json.loads(data.get("report", "{}"))
+            medical_history_data = json.loads(data.get("medical_history", "{}")) if data.get("medical_history") else None
+        except json.JSONDecodeError:
+            return Response(
+                {"error": "Invalid JSON data"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not pet_data or not report_data:
             return Response(
@@ -214,12 +226,22 @@ class LostPetRequestAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Handle pet image
+        pet_image = request.FILES.get('pet_image')
+        if pet_image:
+            pet_data['image'] = pet_image
+
         # 1️⃣ Create Pet
         pet_serializer = PetSerializer(data=pet_data, context={"request": request})
         if pet_serializer.is_valid():
             pet = pet_serializer.save(created_by=user, modified_by=user)
         else:
             return Response({"pet": pet_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle report image
+        report_image = request.FILES.get('report_image')
+        if report_image:
+            report_data['image'] = report_image
 
         # 2️⃣ Create PetReport
         report_serializer = PetReportSerializer(data=report_data, context={"request": request})
@@ -460,3 +482,103 @@ class UserRequestsListAPIView(APIView):
             "adoptions": adoption_data
         }, status=status.HTTP_200_OK)
 
+
+
+
+class AdminUserListView(APIView):
+    permission_classes = [IsAuthenticated]  # must be logged in
+
+    def get(self, request):
+        user = request.user
+
+        # ✅ Only superusers can access
+        if not user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        users = Profile.objects.all()
+        serializer = AdminUserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminUserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, user_id):
+        user = request.user
+
+        if not user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            target_user = Profile.objects.get(id=user_id)
+        except Profile.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AdminUserSerializer(target_user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, user_id):
+        user = request.user
+
+        if not user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            target_user = Profile.objects.get(id=user_id)
+        except Profile.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        target_user.delete()
+        return Response({"message": "User deleted successfully"}, status=status.HTTP_200_OK)
+    
+
+
+class AdminPetReportsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        reports = PetReport.objects.all().order_by("-created_date")
+        serializer = AdminPetReportSerializer(reports, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminPetReportDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, report_id):
+        if not request.user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            report = PetReport.objects.get(id=report_id)
+        except PetReport.DoesNotExist:
+            return Response({"detail": "Report not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get("action")  # "approve" or "reject"
+        if action == "approve":
+            report.report_status = "Accepted"
+        elif action == "reject":
+            report.report_status = "Rejected"
+        else:
+            return Response({"detail": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+
+        report.save()
+        return Response({"message": f"Report {action}d successfully"}, status=status.HTTP_200_OK)
+
+    def delete(self, request, report_id):
+        if not request.user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            report = PetReport.objects.get(id=report_id)
+        except PetReport.DoesNotExist:
+            return Response({"detail": "Report not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        report.delete()
+        return Response({"message": "Report deleted successfully"}, status=status.HTTP_200_OK)

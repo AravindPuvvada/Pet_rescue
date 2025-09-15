@@ -61,24 +61,23 @@ class PetSerializer(serializers.ModelSerializer):
 class PetReportSerializer(serializers.ModelSerializer):
     pet = serializers.PrimaryKeyRelatedField(read_only=True)
     user = serializers.PrimaryKeyRelatedField(read_only=True)
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField(required=False, allow_null=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = PetReport
         fields = [
             "id", "pet", "user", "pet_status", "report_status",
-            "image", "is_resolved",
+            "image", "image_url", "is_resolved",
             "created_date", "modified_date", "created_by", "modified_by"
         ]
 
-
-    def get_image(self, obj):
+    def get_image_url(self, obj):
         if not obj.image:
             return None
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(obj.image.url)
-        return f"{settings.MEDIA_URL}{obj.image.name}"
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -214,3 +213,17 @@ class UserAdoptionRequestSerializer(serializers.ModelSerializer):
         model = PetAdoption
         fields = ["id", "pet_name", "status"]
 
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ["id", "username", "email","gender","phone","address", "created_date"]
+        read_only_fields = ["id", "created_at", "email"]  # email fixed, only status can be changed
+
+class AdminPetReportSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)  # show username
+    pet = PetSerializer(read_only=True)  # reuse PetSerializer
+
+    class Meta:
+        model = PetReport
+        fields = ["id", "pet", "user", "pet_status", "report_status", "created_date"]

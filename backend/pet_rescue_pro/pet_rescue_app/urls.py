@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ProfileViewSet, PetViewSet, PetTypeViewSet,
     PetMedicalHistoryViewSet, PetReportViewSet, PetAdoptionViewSet,
-    NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView, PetsListAPIView, AdminApprovalAPIView, UserNotificationsAPIView, UserRequestsListAPIView
+    NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView, PetsListAPIView, AdminApprovalAPIView, UserNotificationsAPIView, UserRequestsListAPIView,
+    AdminUserListView, AdminUserDetailView, AdminPetReportsAPIView, AdminPetReportDetailAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -36,7 +37,11 @@ urlpatterns = [
     path("pets-list/", PetsListAPIView.as_view(), name="pets-list"),
     path("admin/approve/", AdminApprovalAPIView.as_view(), name="admin-approve"),
     path("get-notifications/", UserNotificationsAPIView.as_view(), name="user-notifications"),
-     path('my-requests/', UserRequestsListAPIView.as_view(), name='my-requests'),
+    path('my-requests/', UserRequestsListAPIView.as_view(), name='my-requests'),
+    path("admin/users/", AdminUserListView.as_view(), name="admin-user-list"),
+    path("admin/users/<int:user_id>/", AdminUserDetailView.as_view(), name="admin-user-detail"),
+    path("admin/reports/", AdminPetReportsAPIView.as_view(), name="admin-reports"),
+    path("admin/reports/<int:report_id>/", AdminPetReportDetailAPIView.as_view(), name="admin-report-detail"),
 ]
 
 # Include all router URLs

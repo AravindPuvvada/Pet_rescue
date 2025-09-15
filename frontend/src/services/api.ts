@@ -498,8 +498,10 @@ async createPetMedicalHistory(
   getImageUrl(imagePath?: string): string {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
-    if (imagePath.startsWith('/media/')) return `http://127.0.0.1:8000${imagePath}`;
-    return `http://127.0.0.1:8000/media/${imagePath}`;
+    const baseUrl = API_BASE_URL.replace('/api', '');
+    if (imagePath.startsWith('/media/')) return `${baseUrl}${imagePath}`;
+    if (imagePath.startsWith('media/')) return `${baseUrl}/${imagePath}`;
+    return `${baseUrl}/media/${imagePath}`;
   }
 }
 

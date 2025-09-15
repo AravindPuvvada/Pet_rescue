@@ -1,24 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Calendar, AlertCircle, Edit, Trash2, Eye } from 'lucide-react';
 import { apiService } from '../../services/api';
-import type { Pet, LostPetRequest, PetType } from '../../services/api';
+import type { Pet, PetType } from '../../services/api';
+interface UserRequests {
+  reports: Array<{
+    id: number;
+    pet_name: string;
+    pet_status: string;
+    report_status: string;
+    image?: string;
+    is_resolved: boolean;
+  }>;
+  adoptions: Array<{
+    id: number;
+    pet_name: string;
+    status: string;
+  }>;
+}
+
+// 🔹 Helper to build full image URL
+const getImageUrl = (path: string) => {
+  const API_BASE_URL = "http://127.0.0.1:8000"; // adjust if your backend URL differs
+  return `${API_BASE_URL}${path}`;
+};
 
 const PetOwnerPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [pets, setPets] = useState<Pet[]>([]);
   const [petTypes, setPetTypes] = useState<PetType[]>([]);
-  const [userRequests, setUserRequests] = useState<any>(null);
+  const [userRequests, setUserRequests] = useState<UserRequests | null>(null);
   const [loading, setLoading] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; petId: number | null }>({
     open: false,
-    petId: null
+    petId: null,
   });
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [notification, setNotification] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
-    severity: 'success'
+    severity: 'success',
   });
   const [formData, setFormData] = useState({
     name: '',
@@ -43,6 +64,7 @@ const PetOwnerPage: React.FC = () => {
     stage: '',
     no_of_years: '',
   });
+
 
   useEffect(() => {
     fetchLostPets();
@@ -107,41 +129,66 @@ const PetOwnerPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Prepare the lost pet request data
-      const requestData: LostPetRequest = {
-        pet: {
-          name: formData.name,
-          pet_type: formData.pet_type,
-          breed: formData.breed,
-          color: formData.color,
-          age: formData.age ? parseInt(formData.age) : undefined,
-          weight: formData.weight ? parseInt(formData.weight) : undefined,
-          description: formData.description,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode ? parseInt(formData.pincode) : undefined,
-          is_diseased: formData.is_diseased,
-          is_vaccinated: formData.is_vaccinated,
-        },
-        report: {
-          pet_status: 'Lost',
-          report_status: 'Pending',
-        }
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      
+      // Prepare pet data
+      const petData = {
+        name: formData.name,
+        pet_type: formData.pet_type,
+        breed: formData.breed,
+        color: formData.color,
+        age: formData.age ? parseInt(formData.age) : undefined,
+        weight: formData.weight ? parseInt(formData.weight) : undefined,
+        description: formData.description,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode ? parseInt(formData.pincode) : undefined,
+        is_diseased: formData.is_diseased,
+        is_vaccinated: formData.is_vaccinated,
       };
-
+      
+      // Prepare report data
+      const reportData = {
+        pet_status: 'Lost',
+        report_status: 'Pending',
+      };
+      
+      // Add data to FormData
+      formDataToSend.append('pet', JSON.stringify(petData));
+      formDataToSend.append('report', JSON.stringify(reportData));
+      
+      // Add pet image if exists
+      if (formData.image) {
+        formDataToSend.append('pet_image', formData.image);
+      }
+      
       // Add medical history if pet is vaccinated or diseased
       if (formData.is_vaccinated || formData.is_diseased) {
-        requestData.medical_history = {
+        const medicalHistoryData = {
           last_vaccinated_date: medicalHistory.last_vaccinated_date || undefined,
           vaccination_name: medicalHistory.vaccination_name || undefined,
           disease_name: medicalHistory.disease_name || undefined,
           stage: medicalHistory.stage ? parseInt(medicalHistory.stage) : undefined,
           no_of_years: medicalHistory.no_of_years ? parseInt(medicalHistory.no_of_years) : undefined,
         };
+        formDataToSend.append('medical_history', JSON.stringify(medicalHistoryData));
       }
 
-      await apiService.createLostPetRequest(requestData);
+      // Send request with FormData
+      const response = await fetch('http://127.0.0.1:8000/api/lost-pet-request/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: formDataToSend
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to report lost pet');
+      }
+
       await fetchLostPets();
       await fetchUserRequests();
       setShowForm(false);
@@ -230,10 +277,6 @@ const PetOwnerPage: React.FC = () => {
     setDeleteDialog({ open: false, petId: null });
   };
 
-  const getImageUrl = (imagePath?: string): string => {
-    return apiService.getImageUrl(imagePath);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -287,11 +330,19 @@ const PetOwnerPage: React.FC = () => {
             <div className="mb-6">
               <h4 className="font-medium text-gray-900 mb-3">Pet Reports</h4>
               <div className="space-y-3">
-                {userRequests.reports.map((report: any) => (
+                {userRequests.reports.map((report) => (
                   <div key={report.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       {report.image && (
-                        <img src={getImageUrl(report.image)} alt={report.pet_name} className="w-12 h-12 object-cover rounded-lg" />
+                        <img 
+                          src={apiService.getImageUrl(report.image)} 
+                          alt={report.pet_name} 
+                          className="w-12 h-12 object-cover rounded-lg" 
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
                       )}
                       <div>
                         <p className="font-medium text-gray-900">{report.pet_name}</p>
@@ -319,7 +370,7 @@ const PetOwnerPage: React.FC = () => {
             <div>
               <h4 className="font-medium text-gray-900 mb-3">Adoption Requests</h4>
               <div className="space-y-3">
-                {userRequests.adoptions.map((adoption: any) => (
+                {userRequests.adoptions.map((adoption) => (
                   <div key={adoption.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{adoption.pet_name}</p>
@@ -574,7 +625,9 @@ const PetOwnerPage: React.FC = () => {
                   Lost
                 </span>
               </div>
-              <p className="text-gray-600 text-sm mb-2">{pet.pet_type} • {pet.breed}</p>
+              <p className="text-gray-600 text-sm mb-2">
+                {typeof pet.pet_type === 'string' ? pet.pet_type : pet.pet_type?.type || 'Unknown'} • {pet.breed}
+              </p>
               <p className="text-gray-600 text-sm mb-3 line-clamp-2">{pet.description}</p>
               
               <div className="flex items-center text-gray-500 text-xs space-x-4 mb-4">
