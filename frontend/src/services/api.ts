@@ -10,6 +10,7 @@ export interface User {
   profile_image?: string;
   created_at: string;
   updated_at: string;
+  is_superuser: boolean; // ✅ add this
 }
 
 export interface PetType {
@@ -138,45 +139,46 @@ class ApiService {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...this.getAuthHeaders(),
-        ...options.headers,
-      },
-    });
-    return this.handleResponse<T>(response);
-  }
+  const url = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...this.getAuthHeaders(),
+      ...options.headers,
+    },
+  });
+  return this.handleResponse<T>(response);
+}
+
 
   // Auth endpoints
   async login(email: string, password: string): Promise<{
+  refresh_token: string;
+  access_token: string;
+  user_id: number;
+  username: string;
+  email: string;
+  is_superuser: boolean;
+}> {
+  const response = await this.request<{
     refresh_token: string;
     access_token: string;
     user_id: number;
     username: string;
     email: string;
-    detail: string;
-  }> {
-    const response = await this.request<{
-      refresh_token: string;
-      access_token: string;
-      user_id: number;
-      username: string;
-      email: string;
-      detail: string;
-    }>('/login/', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    
-    if (response.access_token) {
-      localStorage.setItem('access_token', response.access_token);
-      localStorage.setItem('refresh_token', response.refresh_token);
-    }
-    
-    return response;
+    is_superuser: boolean;
+  }>('/login/', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (response.access_token) {
+    localStorage.setItem('access_token', response.access_token);
+    localStorage.setItem('refresh_token', response.refresh_token);
   }
+
+  return response;
+}
 
   async register(userData: {
     username: string;
@@ -312,11 +314,6 @@ class ApiService {
     }> }>('/admin/notifications/');
   }
 
-  // Pets List by Tab (New API)
-  async getPetsByTab(tab: 'lost' | 'found' | 'adopt'): Promise<{ results: PetReport[] | PetAdoption[] }> {
-    return this.request<{ results: PetReport[] | PetAdoption[] }>(`/pets-list/?tab=${tab}`);
-  }
-
   // Admin Approval (New API)
   async adminApproval(approvalData: AdminApprovalRequest): Promise<{ message: string }> {
     return this.request<{ message: string }>('/admin/approve/', {
@@ -324,6 +321,11 @@ class ApiService {
       body: JSON.stringify(approvalData),
     });
   }
+  // Pets List by Tab (New API)
+  async getPetsByTab(tab: 'lost' | 'found' | 'adopt'): Promise<{ results: PetReport[] | PetAdoption[] }> {
+    return this.request<{ results: PetReport[] | PetAdoption[] }>(`/pets-list/?tab=${tab}`);
+  }
+
 
   // User Notifications (New API)
   async getUserNotifications(): Promise<{ notifications: Notification[] }> {

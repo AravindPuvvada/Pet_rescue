@@ -66,6 +66,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 # -------------------------
 # Pet ViewSet
 # -------------------------
@@ -190,6 +191,7 @@ class LoginAPIView(APIView):
                 "user_id": user.id,
                 "username": user.username,
                 "email": user.email,
+                "is_superuser": user.is_superuser,
                 "detail": "Login successful"
             })
 

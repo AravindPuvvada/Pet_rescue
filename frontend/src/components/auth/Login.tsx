@@ -33,26 +33,46 @@ const Login: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setLoading(true);
-    setMessage('');
+  setLoading(true);
+  setMessage('');
 
-    try {
-      await apiService.login(formData.email, formData.password);
-      setMessage('Login successful!');
-      navigate('/mainpage');
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        setMessage(error.message);
-      } else {
-        setMessage('Invalid credentials. Please try again.');
-      }
-    } finally {
-      setLoading(false);
+  try {
+    // 🔹 Step 1: Login request
+    const response = await apiService.login(formData.email, formData.password);
+
+// ✅ token saved here
+localStorage.setItem('access_token', response.access_token);
+localStorage.setItem('refresh_token', response.refresh_token);
+
+console.log("Access Token Stored:", response.access_token);
+
+setMessage('Login successful!');
+
+// ✅ now safe to fetch profile
+const userProfile = await apiService.getProfile();
+
+if (userProfile.is_superuser) {
+  navigate('/admin-dashboard');
+} else {
+  navigate('/mainpage');
+}
+
+
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      setMessage(error.message);
+    } else {
+      setMessage('Invalid credentials. Please try again.');
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

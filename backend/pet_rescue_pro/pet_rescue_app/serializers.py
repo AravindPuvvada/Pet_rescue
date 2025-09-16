@@ -9,19 +9,21 @@ from django.conf import settings
 # ---------------- ProfileSerializer ----------------
 class ProfileSerializer(serializers.ModelSerializer):
     profile_image = serializers.ImageField(required=False, allow_null=True)
+    is_superuser = serializers.BooleanField(read_only=True)  # 👈 Add this
 
     class Meta:
         model = Profile
         fields = [
             "id", "username", "email", "password", "gender",
             "phone", "address", "pincode", "profile_image",
-            "created_at", "updated_at"
+            "created_at", "updated_at", "is_superuser"  # 👈 Include here
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
         validated_data["password"] = make_password(validated_data["password"])
         return Profile.objects.create(**validated_data)
+
         
 
 # ---------------- Pet & PetType ----------------

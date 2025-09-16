@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import MainPage from "./components/auth/MainPage";
+import AdminDashboard from "./components/admin/AdminDashboard";
 import HomePage from "./HomePage";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem("access_token");
@@ -37,6 +38,16 @@ function App() {
           element={
             <ProtectedRoute>
               <MainPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Dashboard route */}
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
