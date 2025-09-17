@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, User, Calendar, AlertCircle } from 'lucide-react';
-import { apiService } from '../../services/api';
+import { apiService, type Pet, type PetReport } from '../../services/api';
 
 interface AdminNotification {
   notification_id: number;
   sender?: string;
   content: string;
   created_at: string;
-  pet?: any;
-  report?: any;
+  pet?: Pet;
+  report?: PetReport;
 }
 
 const AdminNotifications: React.FC = () => {
@@ -91,7 +91,10 @@ const AdminNotifications: React.FC = () => {
                   <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                     <h4 className="font-medium text-gray-900 mb-1">Related Pet:</h4>
                     <p className="text-sm text-gray-600">
-                      {notification.pet.name} - {notification.pet.pet_type?.type || notification.pet.pet_type}
+                      {notification.pet.name} –{" "}
+                      {typeof notification.pet.pet_type === "string"
+                        ? notification.pet.pet_type
+                        : notification.pet.pet_type?.type}
                     </p>
                   </div>
                 )}

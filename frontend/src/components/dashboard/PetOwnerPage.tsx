@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Calendar, AlertCircle, Edit, Trash2, Eye } from 'lucide-react';
 import { apiService } from '../../services/api';
-import type { Pet, PetType } from '../../services/api';
+import type { Pet } from '../../services/api';
 interface UserRequests {
   reports: Array<{
     id: number;
@@ -27,7 +27,6 @@ const getImageUrl = (path: string) => {
 const PetOwnerPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [pets, setPets] = useState<Pet[]>([]);
-  const [petTypes, setPetTypes] = useState<PetType[]>([]);
   const [userRequests, setUserRequests] = useState<UserRequests | null>(null);
   const [loading, setLoading] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
@@ -68,18 +67,8 @@ const PetOwnerPage: React.FC = () => {
 
   useEffect(() => {
     fetchLostPets();
-    fetchPetTypes();
     fetchUserRequests();
   }, []);
-
-  const fetchPetTypes = async () => {
-    try {
-      const types = await apiService.getPetTypes();
-      setPetTypes(types);
-    } catch (error) {
-      console.error('Error fetching pet types:', error);
-    }
-  };
 
   const fetchUserRequests = async () => {
     try {
@@ -129,7 +118,9 @@ const PetOwnerPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Create FormData for file upload
+
+
+      // Create FormData for proper file upload
       const formDataToSend = new FormData();
       
       // Prepare pet data
@@ -155,16 +146,11 @@ const PetOwnerPage: React.FC = () => {
         report_status: 'Pending',
       };
       
-      // Add data to FormData
+      // Add JSON data to FormData
       formDataToSend.append('pet', JSON.stringify(petData));
       formDataToSend.append('report', JSON.stringify(reportData));
       
-      // Add pet image if exists
-      if (formData.image) {
-        formDataToSend.append('pet_image', formData.image);
-      }
-      
-      // Add medical history if pet is vaccinated or diseased
+      // Add medical history if needed
       if (formData.is_vaccinated || formData.is_diseased) {
         const medicalHistoryData = {
           last_vaccinated_date: medicalHistory.last_vaccinated_date || undefined,
@@ -175,19 +161,30 @@ const PetOwnerPage: React.FC = () => {
         };
         formDataToSend.append('medical_history', JSON.stringify(medicalHistoryData));
       }
-
-      // Send request with FormData
+      
+      // Add image file if present
+      if (formData.image) {
+        formDataToSend.append('pet_image', formData.image);
+      }
+      
+      // Send request using fetch directly for better FormData handling
+      const token = localStorage.getItem('access_token');
       const response = await fetch('http://127.0.0.1:8000/api/lost-pet-request/', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': token ? `Bearer ${token}` : '',
+          // Don't set Content-Type header - let browser set it with boundary for FormData
         },
-        body: formDataToSend
+        body: formDataToSend,
       });
-
+      
       if (!response.ok) {
-        throw new Error('Failed to report lost pet');
+        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
       }
+      
+      const result = await response.json();
+      console.log('Upload successful:', result);
 
       await fetchLostPets();
       await fetchUserRequests();
@@ -406,20 +403,15 @@ const PetOwnerPage: React.FC = () => {
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 required
               />
-              <select
+              <input
+                type="text"
                 name="pet_type"
+                placeholder="Pet Type (e.g., Dog, Cat, Bird)"
                 value={formData.pet_type}
                 onChange={handleChange}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 required
-              >
-                <option value="">Select Pet Type</option>
-                {petTypes.map((type) => (
-                  <option key={type.id} value={type.type}>
-                    {type.type}
-                  </option>
-                ))}
-              </select>
+              />
               <input
                 type="text"
                 name="breed"

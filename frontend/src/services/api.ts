@@ -248,21 +248,43 @@ class ApiService {
   }
 
   // Lost Pet Request (New API)
-  async createLostPetRequest(requestData: LostPetRequest): Promise<{
+  async createLostPetRequest(requestData: LostPetRequest & { pet_image?: File }): Promise<{
     message: string;
     pet_id: number;
     report_id: number;
     notification_id: number;
   }> {
-    return this.request<{
+    const formData = new FormData();
+    
+    // Add JSON data
+    formData.append('pet', JSON.stringify(requestData.pet));
+    formData.append('report', JSON.stringify(requestData.report));
+    
+    if (requestData.medical_history) {
+      formData.append('medical_history', JSON.stringify(requestData.medical_history));
+    }
+    
+    // Add image file if provided
+    if (requestData.pet_image) {
+      formData.append('pet_image', requestData.pet_image);
+    }
+
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/lost-pet-request/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        // Don't set Content-Type - let browser handle it for FormData
+      },
+      body: formData,
+    });
+    
+    return this.handleResponse<{
       message: string;
       pet_id: number;
       report_id: number;
       notification_id: number;
-    }>('/lost-pet-request/', {
-      method: 'POST',
-      body: JSON.stringify(requestData),
-    });
+    }>(response);
   }
 
   async getLostPets(): Promise<{ lost_pets: Array<{

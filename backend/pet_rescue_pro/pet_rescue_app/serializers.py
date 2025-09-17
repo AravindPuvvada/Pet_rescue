@@ -34,10 +34,7 @@ class PetTypeSerializer(serializers.ModelSerializer):
 
 # ---------------- PetSerializer ----------------
 class PetSerializer(serializers.ModelSerializer):
-    pet_type = serializers.SlugRelatedField(
-        queryset=PetType.objects.all(),
-        slug_field="type"
-    )
+    pet_type = serializers.CharField(max_length=50)  # Allow free text input
     created_by = ProfileSerializer(read_only=True)
     modified_by = ProfileSerializer(read_only=True)
     image = serializers.SerializerMethodField()
@@ -58,6 +55,17 @@ class PetSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.image.url)
         return f"{settings.MEDIA_URL}{obj.image.name}"
+    
+    def create(self, validated_data):
+        # Handle pet_type as string instead of ForeignKey
+        pet_type_name = validated_data.pop('pet_type', '')
+        
+        # Get or create PetType
+        if pet_type_name:
+            pet_type_obj, created = PetType.objects.get_or_create(type=pet_type_name)
+            validated_data['pet_type'] = pet_type_obj
+        
+        return super().create(validated_data)
 
 # ---------------- PetReportSerializer ----------------
 class PetReportSerializer(serializers.ModelSerializer):

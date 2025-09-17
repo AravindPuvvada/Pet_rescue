@@ -230,6 +230,7 @@ class LostPetRequestAPIView(APIView):
 
         # Handle pet image
         pet_image = request.FILES.get('pet_image')
+        print(f"Pet image received: {pet_image}")  # Debug log
         if pet_image:
             pet_data['image'] = pet_image
 
@@ -237,18 +238,20 @@ class LostPetRequestAPIView(APIView):
         pet_serializer = PetSerializer(data=pet_data, context={"request": request})
         if pet_serializer.is_valid():
             pet = pet_serializer.save(created_by=user, modified_by=user)
+            print(f"Pet created with image: {pet.image}")  # Debug log
         else:
+            print("Pet serializer errors:", pet_serializer.errors)  # Debug logging
             return Response({"pet": pet_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Handle report image
-        report_image = request.FILES.get('report_image')
-        if report_image:
-            report_data['image'] = report_image
+        # Handle report image (use same image as pet for now)
+        if pet_image:
+            report_data['image'] = pet_image
 
         # 2️⃣ Create PetReport
         report_serializer = PetReportSerializer(data=report_data, context={"request": request})
         if report_serializer.is_valid():
             report = report_serializer.save(user=user, pet=pet, created_by=user, modified_by=user)
+            print(f"Report created with image: {report.image}")  # Debug log
         else:
             return Response({"report": report_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
