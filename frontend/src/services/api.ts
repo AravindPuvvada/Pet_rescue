@@ -55,12 +55,21 @@ export interface PetReport {
 
 export interface PetAdoption {
   id: number;
-  pet: Pet;        // full object
-  requestor: User; // full object
-  message?: string;
+  pet: {
+    id: number;
+    name: string;
+  };
+  requestor: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  // The 'message' property can sometimes be null or undefined
+  message?: string; 
   status: 'Pending' | 'Approved' | 'Rejected';
-  created_date: string;
-  modified_date: string;
+  // Add the missing properties
+  created_by: string | null;
+  modified_by: string | null;
 }
 
 
@@ -75,7 +84,19 @@ export interface Notification {
   created_at: string;
 }
 
-export interface LostPetRequest {
+// export interface LostPetRequest {
+//   pet: Partial<Pet>;
+//   report: Partial<PetReport>;
+//   medical_history?: {
+//     last_vaccinated_date?: string;
+//     vaccination_name?: string;
+//     disease_name?: string;
+//     stage?: number;
+//     no_of_years?: number;
+//   };
+// }
+// For creating a Lost Pet request (POST)
+export interface LostPetRequestCreate {
   pet: Partial<Pet>;
   report: Partial<PetReport>;
   medical_history?: {
@@ -84,6 +105,23 @@ export interface LostPetRequest {
     disease_name?: string;
     stage?: number;
     no_of_years?: number;
+  };
+  pet_image?: File;
+}
+
+// For fetching Lost Pet requests (GET)
+export interface LostPetRequest {
+  report_id: number;
+  report_status: string;
+  pet_status: string;
+  image?: string;
+  pet: {
+    id: number;
+    name: string;
+    pet_type?: string;
+    breed?: string;
+    age?: number;
+    color?: string;
   };
 }
 
@@ -248,44 +286,36 @@ class ApiService {
   }
 
   // Lost Pet Request (New API)
-  async createLostPetRequest(requestData: LostPetRequest & { pet_image?: File }): Promise<{
-    message: string;
-    pet_id: number;
-    report_id: number;
-    notification_id: number;
-  }> {
-    const formData = new FormData();
-    
-    // Add JSON data
-    formData.append('pet', JSON.stringify(requestData.pet));
-    formData.append('report', JSON.stringify(requestData.report));
-    
-    if (requestData.medical_history) {
-      formData.append('medical_history', JSON.stringify(requestData.medical_history));
-    }
-    
-    // Add image file if provided
-    if (requestData.pet_image) {
-      formData.append('pet_image', requestData.pet_image);
-    }
-
-    const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/lost-pet-request/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        // Don't set Content-Type - let browser handle it for FormData
-      },
-      body: formData,
-    });
-    
-    return this.handleResponse<{
-      message: string;
-      pet_id: number;
-      report_id: number;
-      notification_id: number;
-    }>(response);
+  // POST
+async createLostPetRequest(requestData: LostPetRequestCreate): Promise<{
+  message: string;
+  pet_id: number;
+  report_id: number;
+  notification_id: number;
+}> {
+  const formData = new FormData();
+  
+  formData.append('pet', JSON.stringify(requestData.pet));
+  formData.append('report', JSON.stringify(requestData.report));
+  
+  if (requestData.medical_history) {
+    formData.append('medical_history', JSON.stringify(requestData.medical_history));
   }
+  if (requestData.pet_image) {
+    formData.append('pet_image', requestData.pet_image);
+  }
+
+  const token = localStorage.getItem('access_token');
+  const response = await fetch(`${API_BASE_URL}/lost-pet-request/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  });
+
+  return this.handleResponse(response);
+}
 
   async getLostPets(): Promise<{ lost_pets: Array<{
     report_id: number;
@@ -317,6 +347,12 @@ class ApiService {
     }> }>('/lost-pet-request/');
   }
 
+  // GET (for admin)
+async getAdminLostPets(): Promise<{ lost_pets: LostPetRequest[] }> {
+  return this.request<{ lost_pets: LostPetRequest[] }>('/admin/lost-pet-requests/');
+}
+
+
   // Admin Notifications (New API)
   async getAdminNotifications(): Promise<{ notifications: Array<{
     notification_id: number;
@@ -347,6 +383,14 @@ class ApiService {
       body: JSON.stringify(approvalData),
     });
   }
+
+  async manageReportStatus(reportId: number, status: 'Accepted' | 'Resolved' | 'Reunited'): Promise<{ message: string }> {
+  return this.request<{ message: string }>(`/admin/manage-report/${reportId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ report_status: status }),
+  });
+}
+
   // Pets List by Tab (New API)
   async getPetsByTab(tab: 'lost' | 'found' | 'adopt'): Promise<{ results: PetReport[] | PetAdoption[] }> {
     return this.request<{ results: PetReport[] | PetAdoption[] }>(`/pets-list/?tab=${tab}`);
@@ -523,14 +567,23 @@ async createPetMedicalHistory(
     return !!localStorage.getItem('access_token');
   }
 
+  // getImageUrl(imagePath?: string): string {
+  //   if (!imagePath) return '';
+  //   if (imagePath.startsWith('http')) return imagePath;
+  //   const baseUrl = API_BASE_URL.replace('/api', '');
+  //   if (imagePath.startsWith('/media/')) return `${baseUrl}${imagePath}`;
+  //   if (imagePath.startsWith('media/')) return `${baseUrl}/${imagePath}`;
+  //   return `${baseUrl}/media/${imagePath}`;
+  // }
   getImageUrl(imagePath?: string): string {
-    if (!imagePath) return '';
-    if (imagePath.startsWith('http')) return imagePath;
-    const baseUrl = API_BASE_URL.replace('/api', '');
-    if (imagePath.startsWith('/media/')) return `${baseUrl}${imagePath}`;
-    if (imagePath.startsWith('media/')) return `${baseUrl}/${imagePath}`;
-    return `${baseUrl}/media/${imagePath}`;
-  }
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http')) return imagePath;
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  if (imagePath.startsWith('/media/')) return `${baseUrl}${imagePath}`;
+  if (imagePath.startsWith('media/')) return `${baseUrl}/${imagePath}`;
+  return `${baseUrl}/media/${imagePath}`;
+}
+
 }
 
 export const apiService = new ApiService();

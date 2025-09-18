@@ -118,8 +118,6 @@ const PetOwnerPage: React.FC = () => {
     setLoading(true);
 
     try {
-
-
       // Create FormData for proper file upload
       const formDataToSend = new FormData();
       

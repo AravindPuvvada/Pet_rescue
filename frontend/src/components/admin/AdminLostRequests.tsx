@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// import { AlertCircle, MapPin, Calendar, User, Check, X } from 'lucide-react';
-import { AlertCircle, Calendar, Check, X } from 'lucide-react';
+import { AlertCircle, Calendar } from 'lucide-react';
 import { apiService } from '../../services/api';
 
 interface LostRequest {
@@ -30,7 +29,7 @@ const AdminLostRequests: React.FC = () => {
   const fetchLostRequests = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getLostPets();
+      const response = await apiService.getAdminLostPets(); // ✅ admin endpoint
       setRequests(response.lost_pets);
     } catch (error) {
       console.error('Error fetching lost requests:', error);
@@ -45,7 +44,7 @@ const AdminLostRequests: React.FC = () => {
       await apiService.adminApproval({
         request_type: 'lost',
         pet_id: petId,
-        action: action
+        action: action,
       });
       await fetchLostRequests();
     } catch (error) {
@@ -55,12 +54,32 @@ const AdminLostRequests: React.FC = () => {
     }
   };
 
+  const handleStatusChange = async (reportId: number, status: 'Resolved' | 'Reunited') => {
+    try {
+      setActionLoading(reportId);
+      await apiService.manageReportStatus(reportId, status); // ✅ update status in DB
+      await fetchLostRequests();
+    } catch (error) {
+      console.error('Error updating report status:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'accepted':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'resolved':
+        return 'bg-blue-100 text-blue-800';
+      case 'reunited':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -88,7 +107,10 @@ const AdminLostRequests: React.FC = () => {
       {/* Requests Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {requests.map((request) => (
-          <div key={request.report_id} className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+          <div
+            key={request.report_id}
+            className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200"
+          >
             {request.image && (
               <img
                 src={apiService.getImageUrl(request.image)}
@@ -99,15 +121,19 @@ const AdminLostRequests: React.FC = () => {
             <div className="p-4">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">{request.pet.name}</h3>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(request.report_status)}`}>
+                <span
+                  className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                    request.report_status
+                  )}`}
+                >
                   {request.report_status}
                 </span>
               </div>
-              
+
               <p className="text-gray-600 text-sm mb-3">
                 {request.pet.pet_type} • {request.pet.breed} • {request.pet.color}
               </p>
-              
+
               <div className="flex items-center text-gray-500 text-xs space-x-4 mb-4">
                 <div className="flex items-center space-x-1">
                   <AlertCircle className="w-3 h-3" />
@@ -118,24 +144,42 @@ const AdminLostRequests: React.FC = () => {
                   <span>{request.pet.age} years</span>
                 </div>
               </div>
-              
+
+              {/* Buttons based on status */}
               {request.report_status === 'Pending' && (
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                   <button
+                    disabled={actionLoading === request.report_id}
                     onClick={() => handleApproval(request.pet.id, 'approve')}
-                    disabled={actionLoading === request.pet.id}
-                    className="flex-1 flex items-center justify-center space-x-1 bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
+                    className="px-3 py-1 bg-green-500 text-white rounded-lg disabled:opacity-50"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>Approve</span>
+                    {actionLoading === request.pet.id ? 'Approving...' : 'Accept'}
                   </button>
                   <button
+                    disabled={actionLoading === request.report_id}
                     onClick={() => handleApproval(request.pet.id, 'reject')}
-                    disabled={actionLoading === request.pet.id}
-                    className="flex-1 flex items-center justify-center space-x-1 bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm"
+                    className="px-3 py-1 bg-red-500 text-white rounded-lg disabled:opacity-50"
                   >
-                    <X className="w-4 h-4" />
-                    <span>Reject</span>
+                    {actionLoading === request.pet.id ? 'Rejecting...' : 'Reject'}
+                  </button>
+                </div>
+              )}
+
+              {request.report_status === 'Accepted' && (
+                <div className="flex gap-2">
+                  <button
+                    disabled={actionLoading === request.report_id}
+                    onClick={() => handleStatusChange(request.report_id, 'Resolved')}
+                    className="px-3 py-1 bg-blue-500 text-white rounded-lg disabled:opacity-50"
+                  >
+                    {actionLoading === request.report_id ? 'Updating...' : 'Mark as Resolved'}
+                  </button>
+                  <button
+                    disabled={actionLoading === request.report_id}
+                    onClick={() => handleStatusChange(request.report_id, 'Reunited')}
+                    className="px-3 py-1 bg-purple-500 text-white rounded-lg disabled:opacity-50"
+                  >
+                    {actionLoading === request.report_id ? 'Updating...' : 'Mark as Reunited'}
                   </button>
                 </div>
               )}

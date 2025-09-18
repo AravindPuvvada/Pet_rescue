@@ -70,11 +70,30 @@ class ProfileViewSet(viewsets.ModelViewSet):
 # -------------------------
 # Pet ViewSet
 # -------------------------
+# class PetViewSet(viewsets.ModelViewSet):
+#     queryset = Pet.objects.all().order_by("id")
+#     serializer_class = PetSerializer
+#     parser_classes = (MultiPartParser, FormParser)
+#     permission_classes = [IsAuthenticated]  # ✅ Requires auth
+
+#     def perform_create(self, serializer):
+#         user = self.request.user if self.request.user.is_authenticated else None
+#         serializer.save(created_by=user, modified_by=user)
+
+#     def perform_update(self, serializer):
+#         user = self.request.user if self.request.user.is_authenticated else None
+#         serializer.save(modified_by=user)
+
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.all().order_by("id")
     serializer_class = PetSerializer
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [IsAuthenticated]  # ✅ Requires auth
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})  # ✅ pass request to serializer
+        return context
 
     def perform_create(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
@@ -83,6 +102,7 @@ class PetViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(modified_by=user)
+
 
 
 # -------------------------
@@ -609,3 +629,104 @@ class AdminUnreadNotificationCountAPIView(APIView):
         unread_count = Notification.objects.filter(is_read=False, receiver=request.user).count()
         
         return Response({"unread_count": unread_count}, status=status.HTTP_200_OK)
+    
+class AdminLostPetRequestsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # ✅ Only allow admin
+        if not request.user.is_superuser:
+            return Response(
+                {"error": "Only admin can view lost pet requests"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        reports = PetReport.objects.filter(pet_status="Lost").select_related("pet")
+
+        data = []
+        for report in reports:
+            data.append({
+                "report_id": report.id,
+                "report_status": report.report_status,
+                "pet_status": report.pet_status,
+                "image": report.image.url if report.image else None,
+                "pet": {
+                    "id": report.pet.id,
+                    "name": report.pet.name,
+                    "pet_type": str(report.pet.pet_type) if report.pet.pet_type else None,
+                    "breed": report.pet.breed,
+                    "age": report.pet.age,
+                    "color": report.pet.color,
+                }
+            })
+
+        return Response({"lost_pets": data}, status=status.HTTP_200_OK)
+
+
+class AdminFoundPetRequestsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # ✅ Only allow admin
+        if not request.user.is_superuser:
+            return Response(
+                {"error": "Only admin can view lost pet requests"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        reports = PetReport.objects.filter(pet_status="Found").select_related("pet")
+
+        data = []
+        for report in reports:
+            data.append({
+                "report_id": report.id,
+                "report_status": report.report_status,
+                "pet_status": report.pet_status,
+                "image": report.image.url if report.image else None,
+                "pet": {
+                    "id": report.pet.id,
+                    "name": report.pet.name,
+                    "pet_type": str(report.pet.pet_type) if report.pet.pet_type else None,
+                    "breed": report.pet.breed,
+                    "age": report.pet.age,
+                    "color": report.pet.color,
+                }
+            })
+
+        return Response({"found_pets": data}, status=status.HTTP_200_OK)
+
+
+class AdminManageReportStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, report_id):
+        if not request.user.is_superuser:
+            return Response(
+                {"error": "Only admin can update report status"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        report_status = request.data.get("report_status")
+        if report_status not in dict(REPORT_STATUS_CHOICES):
+            return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            report = PetReport.objects.get(id=report_id)
+            report.report_status = report_status
+            report.save()
+
+            # Notify user
+            Notification.objects.create(
+                sender=request.user,
+                receiver=report.user,
+                content=f"Your pet report status changed to {report_status.lower()}",
+                pet=report.pet,
+                report=report
+            )
+
+            return Response(
+                {"message": f"Report status updated to {report_status}"},
+                status=status.HTTP_200_OK
+            )
+        except PetReport.DoesNotExist:
+            return Response({"error": "Report not found"}, status=status.HTTP_404_NOT_FOUND)

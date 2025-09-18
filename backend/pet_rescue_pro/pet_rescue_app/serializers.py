@@ -125,7 +125,8 @@ class PetMedicalHistorySerializer(serializers.ModelSerializer):
 class PetAdoptionSerializer(serializers.ModelSerializer):
     pet = PetSerializer(read_only=True)
     requestor = ProfileSerializer(read_only=True)
-
+    created_by = ProfileSerializer(read_only=True)
+    modified_by = ProfileSerializer(read_only=True)
     class Meta:
         model = PetAdoption
         fields = [
