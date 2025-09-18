@@ -1,35 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, User, Calendar, AlertCircle } from 'lucide-react';
-import { apiService, type Pet, type PetReport } from '../../services/api';
-
-interface AdminNotification {
-  notification_id: number;
-  sender?: string;
-  content: string;
-  created_at: string;
-  pet?: Pet;
-  report?: PetReport;
-}
+import { apiService } from '../../services/api';
+import type { Notification } from '../../services/api';
 
 const AdminNotifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  const fetchNotificationsAndCount = async () => {
+  try {
+    setLoading(true);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.getAdminNotifications();
-      setNotifications(response.notifications);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
+    const notificationsResponse = await apiService.getAdminNotifications();
+
+    // Map API response to match Notification type
+    const mappedNotifications: Notification[] = notificationsResponse.notifications.map((n: any) => ({
+      id: n.notification_id,       // map notification_id → id
+      content: n.content,
+      created_at: n.created_at,
+      is_read: false,              // 👈 default or map if backend provides
+      sender: n.sender,
+      pet: n.pet,
+      report: n.report,
+    }));
+
+    setNotifications(mappedNotifications);
+
+    const countResponse = await apiService.getUnreadAdminNotificationCount();
+    setUnreadCount(countResponse.unread_count);
+
+    console.log('API Response for count:', countResponse);
+    console.log('Unread count state:', countResponse.unread_count);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const markAllAsRead = async () => {
+    const unreadNotifications = notifications.filter(notif => !notif.is_read);
+    
+    // We will mark them as read one by one using the API
+    const updatePromises = unreadNotifications.map(notif => 
+      apiService.markNotificationAsRead(notif.id)
+    );
+    
+    // Wait for all updates to complete before moving on
+    await Promise.all(updatePromises)
+      .catch(error => console.error('Error marking notifications as read:', error));
   };
+
+  useEffect(() => {
+    fetchNotificationsAndCount();
+    
+    // When the component mounts, a user is viewing all notifications.
+    // So, we should mark them as read and update the count.
+    markAllAsRead();
+  }, []);
 
   const getNotificationIcon = (content: string) => {
     if (content.includes('lost')) return <AlertCircle className="w-5 h-5 text-red-500" />;
@@ -48,28 +77,41 @@ const AdminNotifications: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Count Popups */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
           <p className="text-gray-600 mt-2">System notifications and alerts</p>
         </div>
-        <div className="bg-orange-100 text-orange-800 px-4 py-2 rounded-lg font-medium">
-          Total: {notifications.length}
+        <div className="flex items-center space-x-4">
+          <div className="bg-orange-100 text-orange-800 px-4 py-2 rounded-lg font-medium">
+            Total: {notifications.length}
+          </div>
+          {unreadCount > 0 && (
+            <div className="bg-red-100 text-red-800 px-4 py-2 rounded-lg font-medium">
+              Unread: {unreadCount}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Notifications List */}
       <div className="space-y-4">
         {notifications.map((notification) => (
-          <div key={notification.notification_id} className="bg-white rounded-lg shadow p-6 border border-gray-200 hover:shadow-md transition-shadow">
+          <div 
+            key={notification.id}
+            className={`bg-white rounded-lg shadow p-6 border border-gray-200 hover:shadow-md transition-shadow 
+            ${!notification.is_read ? 'border-red-500 border-2' : ''}`}
+          >
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
                 {getNotificationIcon(notification.content)}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-start mb-2">
-                  <p className="text-gray-900 font-medium">{notification.content}</p>
+                  <p className={`text-gray-900 font-medium ${!notification.is_read ? 'font-bold' : ''}`}>
+                    {notification.content}
+                  </p>
                   <span className="text-xs text-gray-500">
                     {new Date(notification.created_at).toLocaleDateString()}
                   </span>
@@ -78,7 +120,7 @@ const AdminNotifications: React.FC = () => {
                 {notification.sender && (
                   <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
                     <User className="w-4 h-4" />
-                    <span>From: {notification.sender}</span>
+                    <span>From: {notification.sender.username}</span>
                   </div>
                 )}
                 

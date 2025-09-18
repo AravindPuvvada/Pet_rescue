@@ -336,6 +336,10 @@ class ApiService {
     }> }>('/admin/notifications/');
   }
 
+  async getUnreadAdminNotificationCount(): Promise<{ unread_count: number }> {
+  return this.request<{ unread_count: number }>('/admin/notifications/unread-count/');
+}
+
   // Admin Approval (New API)
   async adminApproval(approvalData: AdminApprovalRequest): Promise<{ message: string }> {
     return this.request<{ message: string }>('/admin/approve/', {
@@ -476,11 +480,11 @@ async createPetMedicalHistory(
   }
 
   async markNotificationAsRead(id: number): Promise<Notification> {
-    return this.request<Notification>(`/notifications/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify({ is_read: true }),
+    // 👈 The URL must include the custom action name 'mark_as_read'
+    return this.request<Notification>(`/notifications/${id}/mark_as_read/`, {
+        method: 'PATCH',
     });
-  }
+}
 
   async deleteNotification(id: number): Promise<void> {
     return this.request<void>(`/notifications/${id}/`, {

@@ -134,25 +134,25 @@ class PetAdoptionSerializer(serializers.ModelSerializer):
         ]
 
 # ---------------- Notification ----------------
+# In your serializers.py file
 class NotificationSerializer(serializers.ModelSerializer):
-    sender = ProfileSerializer(read_only=True)  # Sender details
-    receiver = ProfileSerializer(read_only=True)  # ← NEW: Receiver details
-    pet = PetSerializer(read_only=True)          # Pet details
-    report = PetReportSerializer(read_only=True) # Report details
+    sender = ProfileSerializer(read_only=True)
+    receiver = ProfileSerializer(read_only=True)
+    pet = PetSerializer(read_only=True)
+    report = PetReportSerializer(read_only=True)
 
     class Meta:
         model = Notification
         fields = [
-            "id",
+            "id",             # ✅ id is now sent
             "sender",
-            "receiver",  # ← NEW
+            "receiver",
             "content",
             "pet",
             "report",
-            "is_read",
+            "is_read",        # ✅ is_read is now sent
             "created_at"
         ]
-
 
 
 # ---------------- Login Serializer ----------------

@@ -4,8 +4,6 @@ import { apiService } from '../../services/api';
 import type { Pet } from '../../services/api';  // <-- type-only import
 import { X, Search } from 'lucide-react';
 
-
-
 const LostPetPage: React.FC = () => {
   // State for the complete, unfiltered list of pets
   const [allPets, setAllPets] = useState<Pet[]>([]);

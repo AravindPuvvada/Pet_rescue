@@ -4,7 +4,7 @@ from .views import (
     ProfileViewSet, PetViewSet, PetTypeViewSet,
     PetMedicalHistoryViewSet, PetReportViewSet, PetAdoptionViewSet,
     NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView, PetsListAPIView, AdminApprovalAPIView, UserNotificationsAPIView, UserRequestsListAPIView,
-    AdminUserListView, AdminUserDetailView, AdminPetReportsAPIView, AdminPetReportDetailAPIView
+    AdminUserListView, AdminUserDetailView, AdminPetReportsAPIView, AdminPetReportDetailAPIView, AdminUnreadNotificationCountAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -42,6 +42,7 @@ urlpatterns = [
     path("admin/users/<int:user_id>/", AdminUserDetailView.as_view(), name="admin-user-detail"),
     path("admin/reports/", AdminPetReportsAPIView.as_view(), name="admin-reports"),
     path("admin/reports/<int:report_id>/", AdminPetReportDetailAPIView.as_view(), name="admin-report-detail"),
+    path('admin/notifications/unread-count/', AdminUnreadNotificationCountAPIView.as_view(), name='admin-unread-count'),
 ]
 
 # Include all router URLs

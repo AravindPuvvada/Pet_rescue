@@ -145,6 +145,20 @@ class NotificationViewSet(viewsets.ModelViewSet):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(created_by=user, modified_by=user)
 
+    @action(detail=True, methods=['patch'])
+    def mark_as_read(self, request, pk=None):
+        try:
+            notification = self.get_object()
+        except Notification.DoesNotExist:
+            return Response({"detail": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        notification.is_read = True
+        notification.save()
+        
+        # Return the updated notification data
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 # -------------------------
 # Register API
@@ -271,8 +285,15 @@ class LostPetRequestAPIView(APIView):
 
         # 4️⃣ Create Notification for Admin
          # 4️⃣ Create Notification for Admin
+        try:
+            admin_user = Profile.objects.get(is_superuser=True)
+        except Profile.DoesNotExist:
+            admin_user = None
+
+        # Create the notification and explicitly set the admin as the receiver
         notification = Notification.objects.create(
             sender=user,
+            receiver=admin_user, # 👈 SET THE RECEIVER
             content=f"New lost pet reported: {pet.name}",
             pet=pet,
             report=report
@@ -323,30 +344,18 @@ class AdminNotificationsAPIView(APIView):
 
     def get(self, request):
         user = request.user
-
-        # ✅ Only superusers can access
+        
+        # Only superusers can access
         if not user.is_superuser:
             return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Get all notifications
-        notifications = Notification.objects.all().order_by("-created_at")
-        notification_list = []
-
-        for notif in notifications:
-            # Get pet and report related to this notification
-            pet = getattr(notif, "pet", None)
-            report = getattr(notif, "report", None)
-
-            notification_list.append({
-                "notification_id": notif.id,
-                "sender": notif.sender.username if notif.sender else None,
-                "content": notif.content,
-                "created_at": notif.created_at,
-                "pet": PetSerializer(pet).data if pet else None,
-                "report": PetReportSerializer(report).data if report else None
-            })
-
-        return Response({"notifications": notification_list}, status=status.HTTP_200_OK)
+        # Filter for notifications where the receiver is the current superuser
+        notifications = Notification.objects.filter(receiver=user).order_by("-created_at")
+        
+        # Use the serializer to handle the data conversion automatically
+        serializer = NotificationSerializer(notifications, many=True)
+        
+        return Response({"notifications": serializer.data}, status=status.HTTP_200_OK)
     
 
 
@@ -587,3 +596,16 @@ class AdminPetReportDetailAPIView(APIView):
 
         report.delete()
         return Response({"message": "Report deleted successfully"}, status=status.HTTP_200_OK)
+    
+
+class AdminUnreadNotificationCountAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_superuser:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Filter for notifications where the receiver is the current superuser
+        unread_count = Notification.objects.filter(is_read=False, receiver=request.user).count()
+        
+        return Response({"unread_count": unread_count}, status=status.HTTP_200_OK)
