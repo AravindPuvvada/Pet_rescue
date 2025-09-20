@@ -1,20 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  Heart,
-  ArrowRight,
-  CheckCircle,
-  Phone,
-  MapPin,
-  Users,
-} from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-
-const API_BASE_URL = "http://127.0.0.1:8000/api"; // change if different
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff, Mail, Lock, Heart, ArrowRight, CheckCircle, Phone, MapPin, Users } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { apiService } from '../../services/api';
 
 interface FormData {
   username: string;
@@ -40,14 +28,14 @@ interface FormErrors {
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    phone: "",
-    address: "",
-    pincode: "",
-    gender: "",
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    address: '',
+    pincode: '',
+    gender: ''
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -58,25 +46,27 @@ const Register: React.FC = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
 
-  // carousel
+  // Pet reunion images for carousel
   const petImages = [
     {
       url: "https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=800",
-      caption: "Max reunited with his family after 5 days",
+      caption: "Max reunited with his family after 5 days"
     },
     {
       url: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg?auto=compress&cs=tinysrgb&w=800",
-      caption: "Luna found her way home through our community",
+      caption: "Luna found her way home through our community"
     },
     {
       url: "https://images.pexels.com/photos/1805164/pexels-photo-1805164.jpeg?auto=compress&cs=tinysrgb&w=800",
-      caption: "Buddy's rescue story touched thousands of hearts",
+      caption: "Buddy's rescue story touched thousands of hearts"
     },
     {
       url: "https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg?auto=compress&cs=tinysrgb&w=800",
-      caption: "Bella's journey from lost to loved",
-    },
+      caption: "Bella's journey from lost to loved"
+    }
   ];
+
+  // Auto-rotate images
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % petImages.length);
@@ -84,104 +74,93 @@ const Register: React.FC = () => {
     return () => clearInterval(timer);
   }, [petImages.length]);
 
-  // validation
-  const validateEmail = (email: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validatePhone = (phone: string) => /^[0-9]{10}$/.test(phone);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
+    
     if (!formData.username.trim()) {
-      newErrors.username = "Username is required";
+      newErrors.username = 'Username is required';
     } else if (formData.username.trim().length < 3) {
-      newErrors.username = "Username must be at least 3 characters";
+      newErrors.username = 'Username must be at least 3 characters';
     }
+    
     if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = 'Email is required';
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Enter a valid email";
+      newErrors.email = 'Please enter a valid email address';
     }
+    
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = 'Password must be at least 6 characters';
     }
+    
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Confirm your password";
+      newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = 'Passwords do not match';
     }
+
     if (formData.phone && !validatePhone(formData.phone)) {
-      newErrors.phone = "Enter a valid 10-digit phone";
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
-    if (
-      formData.pincode &&
-      (formData.pincode.length !== 6 || !/^[0-9]+$/.test(formData.pincode))
-    ) {
-      newErrors.pincode = "Enter a valid 6-digit pincode";
+
+    if (formData.pincode && (formData.pincode.length !== 6 || !/^[0-9]+$/.test(formData.pincode))) {
+      newErrors.pincode = 'Please enter a valid 6-digit pincode';
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-  setLoading(true);
-  setMessage(null);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  try {
-    const userData = {
-      username: formData.username,
-      email: formData.email,
-      password: formData.password,
-      ...(formData.phone && { phone: formData.phone }),
-      ...(formData.address && { address: formData.address }),
-      ...(formData.pincode && { pincode: formData.pincode }),
-      ...(formData.gender && { gender: formData.gender }),
-    };
+    setLoading(true);
+    setMessage(null);
 
-    const res = await fetch(`${API_BASE_URL}/register/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
+    try {
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        ...(formData.phone && { phone: formData.phone }),
+        ...(formData.address && { address: formData.address }),
+        ...(formData.pincode && { pincode: formData.pincode }),
+        ...(formData.gender && { gender: formData.gender })
+      };
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || err.error || "Registration failed");
-    }
+      await apiService.register(userData);
+      
+      setMessage('Account created successfully! Please login to continue.');
+      setTimeout(() => navigate('/login'), 1500);
+    } catch (error: unknown) {
+  console.error('Registration error:', error);
 
-    setMessage("Verification code sent! Please verify your account.");
-
-    // Store all registration data in localStorage for verification page
-    localStorage.setItem("verifyData", JSON.stringify(userData));
-
-    setTimeout(() => {
-      navigate("/verify-account", { state: userData }); // Pass all data in state
-    }, 1200);
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      setMessage(err.message);
-    } else {
-      setMessage("Registration failed. Try again.");
-    }
-  } finally {
-    setLoading(false);
+  if (error instanceof Error) {
+    setMessage(error.message);
+  } else {
+    setMessage('Registration failed. Please try again.');
   }
-};
-
-
+}
+ finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -291,11 +270,10 @@ const Register: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className={`mb-4 p-3 rounded-lg text-center font-medium backdrop-blur-sm border text-sm ${
-  message === "Verification code sent! Please verify your account."
-    ? 'bg-green-50/80 text-green-700 border-green-200'
-    : 'bg-red-50/80 text-red-700 border-red-200'
-}`}
-
+                    message.includes('successfully')
+                      ? 'bg-green-50/80 text-green-700 border-green-200'
+                      : 'bg-red-50/80 text-red-700 border-red-200'
+                  }`}
                 >
                   <div className="flex items-center justify-center">
                     {message.includes('successfully') && (

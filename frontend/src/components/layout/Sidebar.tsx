@@ -28,6 +28,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       label: 'Profile',
       icon: User,
     },
+    {
+      id: 'recent-pets',
+      label: 'Recent Pets',
+      icon: PawPrint,
+    },
   ];
 
   return (

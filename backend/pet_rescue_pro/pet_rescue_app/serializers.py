@@ -156,10 +156,44 @@ class NotificationSerializer(serializers.ModelSerializer):
         ]
 
 
-# ---------------- Login Serializer ----------------
+
+# ---------------- Register ----------------
+class RegisterSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    gender = serializers.CharField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    address = serializers.CharField(required=False, allow_blank=True)
+    pincode = serializers.CharField(required=False, allow_blank=True)
+
+# ---------------- Verify Registration ----------------
+class VerifyRegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(write_only=True)
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    address = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    pincode = serializers.CharField(max_length=10, required=False, allow_blank=True)
+    gender = serializers.CharField(max_length=10, required=False, allow_blank=True)
+
+
+# ---------------- Login ----------------
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+
+# ---------------- Password Reset Request ----------------
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+# ---------------- Password Reset Confirm ----------------
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(write_only=True)
+
 
 
 # ---------------- Lost Pet Request (Nested) ----------------

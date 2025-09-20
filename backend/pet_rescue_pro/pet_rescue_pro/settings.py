@@ -140,9 +140,12 @@ MEDIA_URL = '/media/'
 
 # Django REST Framework configuration
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
 
@@ -158,6 +161,16 @@ SIMPLE_JWT = {
 ADMINS = [('Admin', 'gopim2565@gmail.com')]
 
 AUTH_USER_MODEL = 'pet_rescue_app.Profile'
+
+# Email backend for sending verification and reset codes
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "rythuvikasapp@gmail.com"          # 🔹 your Gmail
+EMAIL_HOST_PASSWORD = "mudz xtms zghi lted"   # 🔹 16-char app password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 
 
 

@@ -50,6 +50,9 @@ class Profile(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    otp = models.CharField(max_length=6, blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
+
     # 🔹 Required for Django Admin
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

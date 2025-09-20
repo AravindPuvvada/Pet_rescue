@@ -25,7 +25,7 @@ from django.contrib.auth.admin import UserAdmin
 @admin.register(Profile)
 class ProfileAdmin(UserAdmin):
     model = Profile
-    list_display = ("username", "email", "gender", "phone", "pincode", "profile_image_tag", "is_staff", "is_active")
+    list_display = ("username", "email", "gender", "phone", "pincode", "profile_image_tag", "is_verified", "is_active","otp")
     search_fields = ("username", "email", "phone", "pincode")
     list_filter = ("gender", "is_staff", "is_active", "is_superuser")
     readonly_fields = ("profile_image_tag",)

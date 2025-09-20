@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import make_password, check_password
 from .models import (
     Profile, Pet, PetType,
     PetMedicalHistory, PetReport, PetAdoption, Notification
@@ -11,8 +11,10 @@ from .serializers import (
     PetMedicalHistorySerializer, PetReportSerializer,
     PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer,
       PetReportListSerializer, PetAdoptionListSerializer, AdminApprovalSerializer, UserPetReportSerializer,
-        UserAdoptionRequestSerializer, AdminUserSerializer,AdminPetReportSerializer
+        UserAdoptionRequestSerializer, AdminUserSerializer,AdminPetReportSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
+        RegisterSerializer, VerifyRegisterSerializer
 )
+from .utils import send_otp_email, verify_otp
 
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
@@ -25,6 +27,11 @@ from django.conf import settings
 import jwt
 from django.db import transaction
 from .models import Notification
+import random
+from django.core.mail import send_mail
+from rest_framework.permissions import AllowAny
+from django.core.cache import cache
+
 # -------------------------
 # PetType ViewSet
 # -------------------------
@@ -180,57 +187,207 @@ class NotificationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# -------------------------
-# Register API
-# -------------------------
+# # -------------------------
+# # Register API
+# # -------------------------
+# class RegisterAPIView(APIView):
+#     def post(self, request):
+#         serializer = ProfileSerializer(data=request.data)
+#         if serializer.is_valid():
+#             user = serializer.save()
+#             return Response({
+#                 "message": "Profile registered successfully",
+#                 "user": serializer.data
+#             }, status=status.HTTP_201_CREATED)
+
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# # -------------------------
+# # Login API with JWT
+# # -------------------------
+# class LoginAPIView(APIView):
+#     def post(self, request):
+#         serializer = LoginSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+
+#         email = serializer.validated_data["email"]
+#         raw_password = serializer.validated_data["password"]
+
+#         try:
+#             user = Profile.objects.get(email=email)
+#         except Profile.DoesNotExist:
+#             return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+#         if check_password(raw_password, user.password):
+#             refresh = RefreshToken.for_user(user)
+#             refresh["email"] = user.email
+#             access_token = str(refresh.access_token)
+
+#             return Response({
+#                 "refresh_token": str(refresh),
+#                 "access_token": access_token,
+#                 "user_id": user.id,
+#                 "username": user.username,
+#                 "email": user.email,
+#                 "is_superuser": user.is_superuser,
+#                 "detail": "Login successful"
+#             })
+
+#         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class RegisterAPIView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
-        serializer = ProfileSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response({
-                "message": "Profile registered successfully",
-                "user": serializer.data
-            }, status=status.HTTP_201_CREATED)
+        data = request.data
+        email = data.get("email")
+        username = data.get("username")
+        password = data.get("password")
+        phone = data.get("phone", "")
+        address = data.get("address", "")
+        pincode = data.get("pincode", "")
+        gender = data.get("gender", "")
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Check if user already exists
+        if Profile.objects.filter(email=email).exists():
+            return Response({"error": "User with this email already exists."}, status=400)
+
+        # Generate OTP and create user
+        otp_code = str(random.randint(100000, 999999))
+        Profile.objects.create(
+            username=username,
+            email=email,
+            password=make_password(password),
+            phone=phone,
+            address=address,
+            pincode=pincode,
+            gender=gender,
+            otp=otp_code,
+            is_verified=False,
+        )
+
+        # Send professional HTML OTP email with same OTP
+        send_otp_email(email, purpose="account verification", otp=otp_code)
+
+        return Response({"message": "OTP sent!"}, status=201)
 
 
 
-# -------------------------
-# Login API with JWT
-# -------------------------
-class LoginAPIView(APIView):
+class VerifyRegisterAPIView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data["email"]
-        raw_password = serializer.validated_data["password"]
+        data = request.data
+        email = data.get("email")
+        code = data.get("code")
 
         try:
             user = Profile.objects.get(email=email)
         except Profile.DoesNotExist:
-            return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"error": "User not found."}, status=400)
 
-        if check_password(raw_password, user.password):
+        if user.otp == code:
+            user.is_verified = True
+            user.otp = ""
+            user.save()
+            return Response({"message": "Account verified successfully!"}, status=200)
+
+        return Response({"error": "Invalid OTP."}, status=400)
+
+
+# ---------------- Login ----------------
+class LoginAPIView(APIView):
+    permission_classes = [AllowAny]  # keep open for all
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+            password = serializer.validated_data["password"]
+
+            try:
+                user = Profile.objects.get(email=email)
+            except Profile.DoesNotExist:
+                return Response({"error": "Invalid credentials"}, status=400)
+
+            # 🔹 Check password
+            if not check_password(password, user.password):
+                return Response({"error": "Invalid credentials"}, status=400)
+
+            # 🔹 If superuser, force is_verified = True
+            if user.is_superuser:
+                if not user.is_verified:
+                    user.is_verified = True
+                    user.save()
+
+            # 🔹 If not superuser, block unverified users
+            elif not user.is_verified:
+                return Response({"error": "Account not verified. Please verify your email first."}, status=403)
+
+            # 🔹 Generate tokens
             refresh = RefreshToken.for_user(user)
-            refresh["email"] = user.email
-            access_token = str(refresh.access_token)
-
             return Response({
-                "refresh_token": str(refresh),
-                "access_token": access_token,
-                "user_id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "is_superuser": user.is_superuser,
-                "detail": "Login successful"
-            })
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "is_superuser": user.is_superuser,
+                }
+            }, status=200)
 
-        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(serializer.errors, status=400)
 
+
+# ---------------- Password Reset Request ----------------
+class PasswordResetRequestAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+
+            # Check if user exists
+            if not Profile.objects.filter(email=email).exists():
+                return Response({"error": "No user with this email."}, status=400)
+
+            # Generate OTP
+            otp_code = str(random.randint(100000, 999999))
+
+            # Optionally, store OTP in cache (for verification later)
+            cache.set(f"otp_{email}", otp_code, timeout=600)  # 10 minutes
+
+            # Send professional HTML OTP email with the same OTP
+            send_otp_email(email, purpose="password reset", otp=otp_code)
+
+            return Response({"message": "OTP sent to your email."}, status=200)
+
+        return Response(serializer.errors, status=400)
+
+
+# ---------------- Password Reset Confirm ----------------
+class PasswordResetConfirmAPIView(APIView):
+    permission_classes = [AllowAny]   
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+            otp = serializer.validated_data["otp"]
+            new_password = serializer.validated_data["new_password"]
+
+            if verify_otp(email, otp):
+                try:
+                    user = Profile.objects.get(email=email)
+                except Profile.DoesNotExist:
+                    return Response({"error": "User not found."}, status=400)
+
+                user.password = make_password(new_password)
+                user.save()
+                return Response({"message": "Password updated successfully."}, status=200)
+
+            return Response({"error": "Invalid or expired OTP."}, status=400)
+
+        return Response(serializer.errors, status=400)
 
 # -------------------------
 # LostPetRequestAPIView

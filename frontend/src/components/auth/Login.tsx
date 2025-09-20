@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { apiService } from '../../services/api';
 import { Heart, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
+const API_BASE_URL = "http://127.0.0.1:8000/api";
+
 const Login: React.FC = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -17,70 +15,66 @@ const Login: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!formData.password.trim()) {
-      newErrors.password = 'Password is required';
-    }
-
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
+    if (!formData.password.trim()) newErrors.password = 'Password is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  setLoading(true);
-  setMessage('');
+    setLoading(true);
+    setMessage('');
 
-  try {
-    // 🔹 Step 1: Login request
-    const response = await apiService.login(formData.email, formData.password);
+    try {
+      // 🔹 Step 1: Login
+      const loginRes = await fetch(`${API_BASE_URL}/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+      });
 
-// ✅ token saved here
-localStorage.setItem('access_token', response.access_token);
-localStorage.setItem('refresh_token', response.refresh_token);
+      const loginData = await loginRes.json();
+      if (!loginRes.ok) throw new Error(loginData.error || 'Login failed');
 
-console.log("Access Token Stored:", response.access_token);
+      // ✅ Save tokens (match backend field names)
+      localStorage.setItem('access_token', loginData.access);
+      localStorage.setItem('refresh_token', loginData.refresh);
 
-setMessage('Login successful!');
+      console.log("Access Token Stored:", loginData.access);
 
-// ✅ now safe to fetch profile
-const userProfile = await apiService.getProfile();
+      setMessage('Login successful!');
 
-if (userProfile.is_superuser) {
-  navigate('/admin-dashboard');
-} else {
-  navigate('/mainpage');
-}
+      // 🔹 Step 2: Fetch profile with token
+      const profileRes = await fetch(`${API_BASE_URL}/profile_details/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${loginData.access}`,
+        },
+      });
 
+      const profileData = await profileRes.json();
+      if (!profileRes.ok) throw new Error(profileData.detail || 'Failed to fetch profile');
 
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      setMessage(error.message);
-    } else {
-      setMessage('Invalid credentials. Please try again.');
+      // ✅ Navigate based on user type
+      if (profileData.is_superuser) navigate('/admin-dashboard');
+      else navigate('/mainpage');
+
+    } catch (err: unknown) {
+      if (err instanceof Error) setMessage(err.message);
+      else setMessage('Invalid credentials. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   return (
@@ -215,6 +209,7 @@ if (userProfile.is_superuser) {
                       placeholder="Enter your email"
                     />
                   </div>
+                  
                   {errors.email && (
                     <p className="text-red-600 text-sm mt-1">{errors.email}</p>
                   )}
@@ -244,6 +239,15 @@ if (userProfile.is_superuser) {
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
+                  <p className="text-right mt-2">
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </p>
+
                   {errors.password && (
                     <p className="text-red-600 text-sm mt-1">{errors.password}</p>
                   )}

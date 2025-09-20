@@ -1,10 +1,15 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/auth/Login";
-import Register from "./components/auth/Register";
+import Register from "./components/auth/Register";  
+import ForgotPassword from "./components/auth/ForgotPassword";
+// import ResetPassword from "./components/auth/ResetPassword";     // ✅ request reset
+// import ConfirmPassword from "./components/auth/ConfirmPassword"; // ✅ confirm reset
+import VerifyAccount from "./components/auth/VerifyAccount";
 import MainPage from "./components/auth/MainPage";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import HomePage from "./HomePage";
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem("access_token");
   if (!token) {
@@ -19,10 +24,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Redirect / based on login */}
+        {/* Public Landing Page */}
         <Route path="/" element={<HomePage />} />
 
-        {/* Login/Register redirects if already logged in */}
+        {/* Login/Register */}
         <Route
           path="/login"
           element={token ? <Navigate to="/mainpage" replace /> : <Login />}
@@ -32,7 +37,15 @@ function App() {
           element={token ? <Navigate to="/mainpage" replace /> : <Register />}
         />
 
-        {/* Protected route */}
+        {/* Email Verification route */}
+        <Route path="/verify-account" element={<VerifyAccount />} />
+
+
+        {/* Password Reset routes */}
+        {/* {/* <Route path="/reset-password" element={<ResetPassword />} /> */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* Protected User Page */}
         <Route
           path="/mainpage"
           element={
@@ -42,7 +55,7 @@ function App() {
           }
         />
 
-        {/* Admin Dashboard route */}
+        {/* Admin Dashboard */}
         <Route
           path="/admin-dashboard"
           element={

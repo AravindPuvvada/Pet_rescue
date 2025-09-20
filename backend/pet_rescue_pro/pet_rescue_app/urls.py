@@ -5,7 +5,8 @@ from .views import (
     PetMedicalHistoryViewSet, PetReportViewSet, PetAdoptionViewSet,
     NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView, PetsListAPIView, AdminApprovalAPIView, UserNotificationsAPIView, UserRequestsListAPIView,
     AdminUserListView, AdminUserDetailView, AdminPetReportsAPIView, AdminPetReportDetailAPIView, AdminUnreadNotificationCountAPIView,
-    AdminLostPetRequestsAPIView, AdminManageReportStatusAPIView
+    AdminLostPetRequestsAPIView, AdminManageReportStatusAPIView, VerifyRegisterAPIView,
+    PasswordResetRequestAPIView, PasswordResetConfirmAPIView,
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -29,8 +30,8 @@ router.register(r"notifications", NotificationViewSet, basename="notification")
 # URL patterns for registration, login, JWT
 urlpatterns = [
     path("register/", RegisterAPIView.as_view(), name="register"),
-    path("login/",    LoginAPIView.as_view(),    name="login"),
-    path("token/",    TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("login/", LoginAPIView.as_view(),    name="login"),
+    path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("profile_details/", ProfileViewSet.as_view({"get": "profile_details"}), name="profile-details"),
     path("lost-pet-request/", LostPetRequestAPIView.as_view(), name="lost-pet-request"),
@@ -46,6 +47,9 @@ urlpatterns = [
     path('admin/notifications/unread-count/', AdminUnreadNotificationCountAPIView.as_view(), name='admin-unread-count'),
     path("admin/lost-pet-requests/", AdminLostPetRequestsAPIView.as_view(), name="admin-lost-pet-requests"),
     path("admin/manage-report/<int:report_id>/", AdminManageReportStatusAPIView.as_view(), name="admin-manage-report"),
+    path("verify-register/", VerifyRegisterAPIView.as_view(), name="verify-register"),
+    path("password-reset-request/", PasswordResetRequestAPIView.as_view(), name="password-reset-request"),
+    path("password-reset-confirm/", PasswordResetConfirmAPIView.as_view(), name="password-reset-confirm"),
 ]
 
 # Include all router URLs
