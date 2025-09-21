@@ -16,7 +16,7 @@ from .serializers import (
 )
 from .utils import send_otp_email, verify_otp
 
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
@@ -131,7 +131,7 @@ class PetMedicalHistoryViewSet(viewsets.ModelViewSet):
 class PetReportViewSet(viewsets.ModelViewSet):
     queryset = PetReport.objects.all().order_by("id")
     serializer_class = PetReportSerializer
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (MultiPartParser, FormParser,JSONParser)
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
@@ -141,6 +141,29 @@ class PetReportViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(modified_by=user)
+    def update(self, request, *args, **kwargs):
+        # Get the report instance that is about to be updated
+        report = self.get_object()
+        
+        # Store the original status before any changes are made
+        original_status = report.report_status
+
+        # Proceed with the default update behavior
+        response = super().update(request, *args, **kwargs)
+
+        # After the update, check if the status was changed by an admin
+        new_status = response.data.get('report_status')
+        if original_status != new_status and request.user.is_superuser:
+            
+            # Create a notification for the user who created the report
+            Notification.objects.create(
+                sender=request.user,          # The admin making the change
+                receiver=report.user,         # The user who owns the report
+                content=f"An admin updated the status for your pet '{report.pet.name}' to '{new_status}'.",
+                pet=report.pet,
+                report=report
+            )
+        return response
 
 
 # -------------------------
@@ -798,59 +821,31 @@ class AdminLostPetRequestsAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        reports = PetReport.objects.filter(pet_status="Lost").select_related("pet")
-
-        data = []
-        for report in reports:
-            data.append({
-                "report_id": report.id,
-                "report_status": report.report_status,
-                "pet_status": report.pet_status,
-                "image": report.image.url if report.image else None,
-                "pet": {
-                    "id": report.pet.id,
-                    "name": report.pet.name,
-                    "pet_type": str(report.pet.pet_type) if report.pet.pet_type else None,
-                    "breed": report.pet.breed,
-                    "age": report.pet.age,
-                    "color": report.pet.color,
-                }
-            })
-
-        return Response({"lost_pets": data}, status=status.HTTP_200_OK)
+        # ✅ Use the detailed AdminPetReportSerializer for a consistent response
+        # This ensures all necessary data (user, pet details, dates) is included.
+        reports = PetReport.objects.filter(pet_status="Lost").select_related("pet", "user").order_by("-created_date")
+        serializer = AdminPetReportSerializer(reports, many=True, context={'request': request})
+        
+        # ✅ Return the serialized data directly as an array
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AdminFoundPetRequestsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # ✅ Only allow admin
+        # Only allow admin access
         if not request.user.is_superuser:
             return Response(
-                {"error": "Only admin can view lost pet requests"},
+                {"error": "Only admin can view found pet requests"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        reports = PetReport.objects.filter(pet_status="Found").select_related("pet")
-
-        data = []
-        for report in reports:
-            data.append({
-                "report_id": report.id,
-                "report_status": report.report_status,
-                "pet_status": report.pet_status,
-                "image": report.image.url if report.image else None,
-                "pet": {
-                    "id": report.pet.id,
-                    "name": report.pet.name,
-                    "pet_type": str(report.pet.pet_type) if report.pet.pet_type else None,
-                    "breed": report.pet.breed,
-                    "age": report.pet.age,
-                    "color": report.pet.color,
-                }
-            })
-
-        return Response({"found_pets": data}, status=status.HTTP_200_OK)
+        # Use the same detailed serializer, but filter for "Found" status
+        reports = PetReport.objects.filter(pet_status="Found").select_related("pet", "user").order_by("-created_date")
+        serializer = AdminPetReportSerializer(reports, many=True, context={'request': request})
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AdminManageReportStatusAPIView(APIView):

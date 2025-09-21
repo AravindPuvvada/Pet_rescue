@@ -6,7 +6,7 @@ from .views import (
     NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView, PetsListAPIView, AdminApprovalAPIView, UserNotificationsAPIView, UserRequestsListAPIView,
     AdminUserListView, AdminUserDetailView, AdminPetReportsAPIView, AdminPetReportDetailAPIView, AdminUnreadNotificationCountAPIView,
     AdminLostPetRequestsAPIView, AdminManageReportStatusAPIView, VerifyRegisterAPIView,
-    PasswordResetRequestAPIView, PasswordResetConfirmAPIView,
+    PasswordResetRequestAPIView, PasswordResetConfirmAPIView,AdminFoundPetRequestsAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -50,6 +50,7 @@ urlpatterns = [
     path("verify-register/", VerifyRegisterAPIView.as_view(), name="verify-register"),
     path("password-reset-request/", PasswordResetRequestAPIView.as_view(), name="password-reset-request"),
     path("password-reset-confirm/", PasswordResetConfirmAPIView.as_view(), name="password-reset-confirm"),
+    path("admin/found-pet-requests/", AdminFoundPetRequestsAPIView.as_view(), name="admin-found-pet-requests"),
 ]
 
 # Include all router URLs

@@ -266,9 +266,19 @@ class AdminUserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "email"]  # email fixed, only status can be changed
 
 class AdminPetReportSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(source="user.username", read_only=True)  # show username
-    pet = PetSerializer(read_only=True)  # reuse PetSerializer
+    user = serializers.CharField(source="user.username", read_only=True)
+    pet = PetSerializer(read_only=True)
+    image_url = serializers.SerializerMethodField() # ✅ Add this field
 
     class Meta:
         model = PetReport
-        fields = ["id", "pet", "user", "pet_status", "report_status", "created_date"]
+        # ✅ Add 'image_url' to the list of fields
+        fields = ["id", "pet", "user", "pet_status", "report_status", "image_url", "created_date", "modified_date"]
+
+    # ✅ Add this method to generate the full image URL
+    def get_image_url(self, obj):
+        if obj.image and hasattr(obj.image, 'url'):
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+        return None
