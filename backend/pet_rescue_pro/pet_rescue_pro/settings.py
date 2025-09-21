@@ -12,8 +12,17 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path 
 import os
+from dotenv import load_dotenv
+
+import google.generativeai as genai
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # keep key in .env
+genai.configure(api_key=GEMINI_API_KEY)
+
+
 # read .env file
 
 # Quick-start development settings - unsuitable for production

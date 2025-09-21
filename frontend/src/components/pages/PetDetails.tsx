@@ -1,13 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Pet } from '../../services/api';
 import { X, MapPin, Heart, Feather, Droplet, User, Weight, Calendar, Stethoscope } from 'lucide-react';
 
+// ⭐ UPDATED INTERFACE to accept dynamic button props
 interface PetDetailsModalProps {
     pet: Pet;
     onClose: () => void;
+    // Props for the primary action button
+    onPrimaryAction: (pet: Pet) => void;
+    primaryButtonLabel: string;
 }
 
-const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose }) => {
+const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose, onPrimaryAction, primaryButtonLabel }) => {
+
+    // 🛑 SCROLL-LOCKING LOGIC (Remains the same)
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
 
     // Safely access medical history, defaulting to an empty object
     const medical = pet.medical_history || {};
@@ -16,16 +28,15 @@ const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose }) => {
     const locationText = [pet.city, pet.state, pet.pincode].filter(Boolean).join(', ');
     const displayLocation = locationText.trim() || 'Location Not Available';
 
-    // FIX: Using nullish coalescing for safety. This relies on the API providing the full description.
+    // FIX: Using nullish coalescing for safety.
     const displayDescription = pet.description || 'No Information Available';
 
-    // Helper component for attribute details
+    // Helper component for attribute details (Remains the same)
     const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: React.ReactNode }> = ({ icon, label, value }) => (
         <div className="flex items-start text-gray-700 py-1">
             <span className="mr-3 text-orange-500 flex-shrink-0">{icon}</span>
             <span className="font-semibold w-1/4 text-sm">{label}:</span>
-            {/* FIX: Explicitly convert value to String() to resolve TypeScript type errors */}
-            <span className="text-sm font-medium">{String(value) ?? 'N/A'}</span>
+            <span className="text-sm font-medium">{value != null ? String(value) : 'N/A'}</span>
         </div>
     );
 
@@ -44,7 +55,7 @@ const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose }) => {
                 </button>
 
                 <div className="flex flex-col lg:flex-row">
-                    {/* Left Column (Image and Details) */}
+                    {/* Left Column (Image and Details) - Remains the same */}
                     <div className="lg:w-1/3 bg-gray-50 p-6 flex flex-col items-center">
                         <div className="w-40 h-40 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden border-4 border-orange-200 mb-4">
                             {pet.image ? (
@@ -57,12 +68,32 @@ const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose }) => {
                         <h2 className="text-3xl font-bold text-gray-800 mb-1">{pet.name ?? 'Unnamed Pet'}</h2>
 
                         <div className="w-full space-y-3 text-left">
-                            <DetailItem icon={<Feather className="w-4 h-4" />} label="Type" value={String(pet.pet_type) ?? 'N/A'} />
-                            <DetailItem icon={<Feather className="w-4 h-4" />} label="Breed" value={String(pet.breed) ?? 'N/A'} />
-                            <DetailItem icon={<Heart className="w-4 h-4" />} label="Gender" value={pet.gender ?? 'N/A'} />
-                            <DetailItem icon={<Weight className="w-4 h-4" />} label="Age" value={pet.age ? `${pet.age}` : 'N/A'} />
-                            <DetailItem icon={<Droplet className="w-4 h-4" />} label="Color" value={pet.color ?? 'N/A'} />
-                        </div>
+                            <DetailItem 
+                                icon={<Feather className="w-4 h-4" />} 
+                                label="Type" 
+                                value={pet.pet_type != null ? String(pet.pet_type) : 'N/A'} 
+                            />
+                            <DetailItem 
+                                icon={<Feather className="w-4 h-4" />} 
+                                label="Breed" 
+                                value={pet.breed != null ? String(pet.breed) : 'N/A'} 
+                            />
+                            <DetailItem 
+                                icon={<Heart className="w-4 h-4" />} 
+                                label="Gender" 
+                                value={pet.gender ?? 'N/A'} 
+                            />
+                            <DetailItem 
+                                icon={<Weight className="w-4 h-4" />} 
+                                label="Age" 
+                                value={pet.age != null ? `${pet.age}` : 'N/A'} 
+                            />
+                            <DetailItem 
+                                icon={<Droplet className="w-4 h-4" />} 
+                                label="Color" 
+                                value={pet.color ?? 'N/A'} 
+                            />
+                            </div>
 
                         <div className="w-full mt-6 pt-4 border-t border-gray-200">
                             <h4 className="text-lg font-bold text-gray-800 flex items-center mb-2"><MapPin className="w-5 h-5 mr-2 text-red-500" />Location</h4>
@@ -73,8 +104,8 @@ const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose }) => {
                         </div>
                     </div>
 
-                    {/* Right Column (Medical and Description) */}
-                    <div className="lg:w-2/3 p-6 flex flex-col"> {/* Added flex-col here */}
+                    {/* Right Column (Medical and Description) - Content remains the same */}
+                    <div className="lg:w-2/3 p-6 flex flex-col">
                         <h3 className="text-2xl font-bold text-gray-800 mb-3">About {pet.name ?? 'Pet'}</h3>
                         <p className="text-gray-700 mb-6 whitespace-pre-line">{displayDescription}</p>
 
@@ -96,10 +127,9 @@ const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose }) => {
                             </div>
                         </div>
 
-                        {/* Detailed Medical Records (Conditional Block) */}
+                        {/* Detailed Medical Records (Conditional Block) - Remains the same */}
                         {(pet.is_diseased || pet.is_vaccinated) && (
                             <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm mb-8 p-4 border rounded-lg bg-gray-50">
-
                                 {/* Disease Details (SHOW ONLY IF DISEASED) */}
                                 {pet.is_diseased && (
                                     <>
@@ -136,16 +166,20 @@ const PetDetailsModal: React.FC<PetDetailsModalProps> = ({ pet, onClose }) => {
                             </div>
                         )}
 
-                        {/* Footer and Buttons (New Layout) */}
+
+                        {/* ⭐ DYNAMIC FOOTER AND BUTTONS */}
                         <div className="mt-auto pt-4 border-t border-gray-200 flex justify-end items-center space-x-4">
-                            {/* New Report Sighting Button */}
+                            
+                            {/* Primary Dynamic Action Button */}
                             <button
-                                onClick={() => alert('Report Sighting functionality goes here!')} // Placeholder action
+                                // ⭐ Use the dynamic action handler
+                                onClick={() => onPrimaryAction(pet)}
                                 className="px-6 py-3 font-semibold text-orange-500 border border-orange-500 rounded-lg shadow-sm hover:bg-orange-50 transition-colors">
-                                Report Sighting
+                                {/* ⭐ Use the dynamic label */}
+                                {primaryButtonLabel} 
                             </button>
 
-                            {/* Modified Close Button (Original 'Report Sighting' button) */}
+                            {/* Close Button */}
                             <button
                                 onClick={onClose}
                                 className="px-6 py-3 font-semibold text-white bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg shadow-md hover:opacity-90 transition-opacity">

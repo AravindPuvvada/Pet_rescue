@@ -1,236 +1,283 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, MapPin, Calendar, Send, Search } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import PetCard from '../../components/petcard/PetCard';
+import PetDetailsModal from '../../components/pages/PetDetails';
 import { apiService } from '../../services/api';
+import type { Pet } from '../../services/api';
+import { X, Search } from 'lucide-react';
 
-
-interface Pet {
-  id: number;
-  name: string;
-  pet_type: string;
-  breed: string;
+interface InputFilters {
+  location: string;
+  petType: string;
   color: string;
-  age: number;
-  description: string;
-  city: string;
-  state: string;
-  image?: string;
-  created_date: string;
-}
-interface PetReport {
-  id: number;
-  pet: Pet;
-  image?: string;
-  created_date: string;
+  breed: string;
 }
 
-const RescuedPetsPage: React.FC = () => {
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [filteredPets, setFilteredPets] = useState<Pet[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
-  const [requestMessage, setRequestMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchRescuedPets();
-  }, []);
-
-  useEffect(() => {
-    // Filter pets based on search term
-    const filtered = pets.filter(pet =>
-      pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pet.pet_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pet.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pet.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pet.state.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredPets(filtered);
-  }, [pets, searchTerm]);
-
-  const fetchRescuedPets = async () => {
-  try {
-    const response = await apiService.getPetsByTab('found') as { results: PetReport[] };
-    
-    const petsData: Pet[] = response.results.map((report: PetReport) => ({
-      id: report.pet.id,
-      name: report.pet.name || 'Unknown',
-      pet_type: report.pet.pet_type || '',
-      breed: report.pet.breed || '',
-      color: report.pet.color || '',
-      age: report.pet.age || 0,
-      description: report.pet.description || '',
-      city: report.pet.city || '',
-      state: report.pet.state || '',
-      image: report.image || report.pet.image,
-      created_date: report.created_date || new Date().toISOString()
-    }));
-    
-    setPets(petsData);
-  } catch (error) {
-    console.error('Error fetching rescued pets:', error);
-  }
+const getImageUrl = (path: string | undefined) => {
+  if (!path) return '';
+  const API_BASE_URL = "http://127.0.0.1:8000"; // adjust if different
+  return `${API_BASE_URL}${path}`;
 };
 
 
-  const handleClaimRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPet) return;
+const FoundPetPage: React.FC = () => {
+  // State for all pets fetched from API
+  const [allPets, setAllPets] = useState<Pet[]>([]);
 
-    setLoading(true);
-    try {
-      // Create a pet adoption request for claiming
-      await apiService.createPetAdoption({
-  pet: selectedPet.id,
-  message: requestMessage,
-  status: 'Pending'
-});
-      
-      // Reset form
-      setSelectedPet(null);
-      setRequestMessage('');
-      alert('Claim request submitted successfully! The rescuer will contact you soon.');
-      await fetchRescuedPets();
-    } catch (error) {
-      console.error('Error submitting claim request:', error);
-      alert('Failed to submit claim request. Please try again.');
-    } finally {
-      setLoading(false);
+  // State for Modal Management
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
+
+  // Filters the user is currently typing
+  const [inputFilters, setInputFilters] = useState<InputFilters>({
+    location: '',
+    petType: '',
+    color: '',
+    breed: '',
+  });
+
+  // Filters that are actually applied
+  const [activeFilters, setActiveFilters] = useState<InputFilters>({
+    location: '',
+    petType: '',
+    color: '',
+    breed: '',
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // --- Data Fetching: Uses apiService.getFoundPets() ---
+  useEffect(() => {
+    const fetchFoundPets = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch data using the specific found pets API endpoint
+        const data = await apiService.getFoundPets();
+
+        // Normalize API response to match Pet type exactly
+        const normalizedPets: Pet[] = data.found_pets.map((item) => ({
+          id: item.pet.id,
+          name: item.pet.name,
+          pet_type: item.pet.pet_type ?? '',
+          breed: item.pet.breed ?? '',
+          age: item.pet.age ?? undefined,
+          color: item.pet.color ?? '',
+
+          address: item.pet.address ?? '',
+          city: item.pet.city ?? '',
+          state: item.pet.state ?? '',
+          pincode: item.pet.pincode ?? undefined,
+          gender: item.pet.gender ?? '',
+
+          image: getImageUrl(item.image),
+          description: item.pet.description,
+          medical_history: item.pet.medical_history ?? null,
+          is_diseased: item.pet.is_diseased ?? false,
+          is_vaccinated: item.pet.is_vaccinated ?? false,
+          created_date: new Date().toISOString(),
+          modified_date: new Date().toISOString(),
+        }));
+
+        setAllPets(normalizedPets);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to load found pet data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFoundPets();
+  }, []);
+
+  // --- Filtering Logic ---
+  const filteredPets = useMemo(() => {
+    const activeLocation = activeFilters.location.toLowerCase();
+    const activePetType = activeFilters.petType.toLowerCase();
+    const activeColor = activeFilters.color.toLowerCase();
+    const activeBreed = activeFilters.breed.toLowerCase();
+
+    if (Object.values(activeFilters).every((val) => val === '')) {
+      return allPets;
     }
+
+    return allPets.filter((pet) => {
+      // Combine location fields for comprehensive search
+      const petLocation = `${String(pet.city || '')} ${String(pet.state || '')} ${String(pet.address || '')}`.toLowerCase();
+      const petType = String(pet.pet_type || '').toLowerCase();
+      const petColor = String(pet.color || '').toLowerCase();
+      const petBreed = String(pet.breed || '').toLowerCase();
+
+      return (
+        petLocation.includes(activeLocation) &&
+        petType.includes(activePetType) &&
+        petColor.includes(activeColor) &&
+        petBreed.includes(activeBreed)
+      );
+    });
+  }, [allPets, activeFilters]);
+
+  // --- Handler Functions ---
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setInputFilters((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleApplyFilters = () => {
+    setActiveFilters(inputFilters);
+  };
+
+  const resetFilters = () => {
+    setInputFilters({ location: '', petType: '', color: '', breed: '' });
+    setActiveFilters({ location: '', petType: '', color: '', breed: '' });
+  };
+
+  // --- Modal Handlers ---
+  const handleViewDetails = (pet: Pet) => {
+    setSelectedPet(pet);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedPet(null);
+  };
+
+  const handleReportMyPet = (pet: Pet) => {
+    // Functionality for an owner claiming their pet
+    alert(`I think I found my pet! Initiating claim process for pet ID ${pet.id}...`);
+  };
+
+  // --- Render Logic ---
+  const isAnyFilterActive = Object.values(activeFilters).some((v) => v !== '');
+  const petsToDisplay = isAnyFilterActive ? filteredPets : allPets;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500 text-lg">{error}</div>
+    );
+  }
+
   return (
-    <div className="space-y-6 mt-20">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Rescued Pets</h1>
-        <p className="text-gray-600 mt-2">Browse found pets and help reunite them with their families</p>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <input
-          type="text"
-          placeholder="Search by name, type, breed, or location..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
-
-      {/* Claim Request Form */}
-      {selectedPet && (
-        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Claim Request for {selectedPet.name}
-          </h3>
-          <form onSubmit={handleClaimRequest} className="space-y-4">
-            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-              {selectedPet.image && (
-                <img
-                  src={selectedPet.image}
-                  alt={selectedPet.name}
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
-              )}
-              <div>
-                <h4 className="font-semibold text-gray-900">{selectedPet.name}</h4>
-                <p className="text-gray-600 text-sm">{selectedPet.pet_type} • {selectedPet.breed}</p>
-                <p className="text-gray-500 text-xs">{selectedPet.city}, {selectedPet.state}</p>
-              </div>
-            </div>
-            
-            <textarea
-              value={requestMessage}
-              onChange={(e) => setRequestMessage(e.target.value)}
-              placeholder="Please provide details to verify this is your pet. Include information about when and where they went missing, distinctive features, behavior, or any other identifying information..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={6}
-              required
-            />
-            
-            <div className="flex space-x-3">
-              <button
-                type="button"
-                onClick={() => setSelectedPet(null)}
-                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
-              >
-                <Send className="w-4 h-4" />
-                <span>{loading ? 'Submitting...' : 'Submit Claim'}</span>
-              </button>
-            </div>
-          </form>
+    <>
+      <div className="animate-fade-in container mx-auto p-4">
+        <div className="mb-8">
+          <h1 className="text-4xl font-extrabold text-gray-800 mb-2">Found Pets</h1>
+          <p className="text-lg text-gray-600">These pets have been safely found. Help us locate their owners.</p>
         </div>
-      )}
 
-      {/* Rescued Pets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPets.map((pet) => (
-          <div key={pet.id} className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow">
-            {pet.image && (
-              <img
-                src={apiService.getImageUrl(pet.image)}
-                alt={pet.name}
-                className="w-full h-48 object-cover"
+        {/* Filter UI Section */}
+        <div className="mb-8 p-6 bg-white rounded-lg shadow-md">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Location (City)</label>
+              <input
+                type="text"
+                name="location"
+                value={inputFilters.location}
+                onChange={handleFilterChange}
+                placeholder="e.g., Pune"
+                className="w-full p-2 border border-gray-300 rounded-lg"
               />
-            )}
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold text-gray-900">{pet.name || 'Unknown'}</h3>
-                <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                  Found
-                </span>
-              </div>
-              <p className="text-gray-600 text-sm mb-2">{pet.pet_type} • {pet.breed}</p>
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">{pet.description}</p>
-              
-              <div className="flex items-center text-gray-500 text-xs space-x-4 mb-4">
-                <div className="flex items-center space-x-1">
-                  <MapPin className="w-3 h-3" />
-                  <span>{pet.city}, {pet.state}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Calendar className="w-3 h-3" />
-                  <span>Found {new Date(pet.created_date).toLocaleDateString()}</span>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => setSelectedPet(pet)}
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-2 px-4 rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-colors text-sm font-medium flex items-center justify-center space-x-2"
-              >
-                <Heart className="w-4 h-4" />
-                <span>This is My Pet</span>
-              </button>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pet Type</label>
+              <select
+                name="petType"
+                value={inputFilters.petType}
+                onChange={handleFilterChange}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              >
+                <option value="">All</option>
+                <option value="Dog">Dog</option>
+                <option value="Cat">Cat</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+              <input
+                type="text"
+                name="color"
+                value={inputFilters.color}
+                onChange={handleFilterChange}
+                placeholder="e.g., Black"
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Breed</label>
+              <input
+                type="text"
+                name="breed"
+                value={inputFilters.breed}
+                onChange={handleFilterChange}
+                placeholder="e.g., Beagle"
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            {/* Apply & Reset Buttons */}
+            <button
+              onClick={handleApplyFilters}
+              className="flex items-center justify-center bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              <Search className="w-4 h-4 mr-2" /> Apply
+            </button>
+            <button
+              onClick={resetFilters}
+              className="flex items-center justify-center bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              <X className="w-4 h-4 mr-2" /> Reset
+            </button>
           </div>
-        ))}
+        </div>
+
+        {/* Pet List */}
+        {petsToDisplay.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {petsToDisplay.map((pet) => (
+              <PetCard
+                key={pet.id}
+                pet={pet}
+                onViewDetails={handleViewDetails}
+                // ⭐ Pass the specific handler for claiming the pet
+                onReport={handleReportMyPet}
+                // ⭐ Pass the specific button label
+                reportButtonLabel="Report My Pet"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 text-lg py-16">
+            {isAnyFilterActive ? (
+              <p>No pets match the current filters.</p>
+            ) : (
+              <p>No found pets have been reported at the moment.</p>
+            )}
+          </div>
+        )}
       </div>
 
-      {filteredPets.length === 0 && pets.length > 0 && (
-        <div className="text-center py-12">
-          <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No pets found</h3>
-          <p className="text-gray-600">Try adjusting your search terms.</p>
-        </div>
+      {selectedPet && (
+        <PetDetailsModal
+          pet={selectedPet}
+          onClose={handleCloseModal}
+          onPrimaryAction={handleReportMyPet} // Use the specific claim handler
+          primaryButtonLabel="Report My Pet" // Label for found pet context
+        />
       )}
-
-      {pets.length === 0 && (
-        <div className="text-center py-12">
-          <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No rescued pets yet</h3>
-          <p className="text-gray-600">Rescued pets will appear here when they're reported by rescuers.</p>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 
-export default RescuedPetsPage;
+export default FoundPetPage;

@@ -51,6 +51,7 @@ const PetOwnerPage: React.FC = () => {
     address: '',
     city: '',
     state: '',
+    gender: '', 
     pincode: '',
     is_diseased: false,
     is_vaccinated: false,
@@ -206,6 +207,7 @@ const PetOwnerPage: React.FC = () => {
         address: '',
         city: '',
         state: '',
+        gender: '', 
         pincode: '',
         is_diseased: false,
         is_vaccinated: false,
@@ -450,8 +452,18 @@ const PetOwnerPage: React.FC = () => {
                 onChange={handleChange}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
                 type="number"

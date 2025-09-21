@@ -6,7 +6,8 @@ from .views import (
     NotificationViewSet, RegisterAPIView, LoginAPIView, LostPetRequestAPIView, PetsListAPIView, AdminApprovalAPIView, UserNotificationsAPIView, UserRequestsListAPIView,
     AdminUserListView, AdminUserDetailView, AdminPetReportsAPIView, AdminPetReportDetailAPIView, AdminUnreadNotificationCountAPIView,
     AdminLostPetRequestsAPIView, AdminManageReportStatusAPIView, VerifyRegisterAPIView,
-    PasswordResetRequestAPIView, PasswordResetConfirmAPIView,AdminFoundPetRequestsAPIView,AdminChangePasswordView
+    PasswordResetRequestAPIView, PasswordResetConfirmAPIView,AdminFoundPetRequestsAPIView,AdminChangePasswordView,
+    FoundPetRequestAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -15,6 +16,7 @@ from rest_framework_simplejwt.views import (
 from django.conf import settings
 from django.conf.urls.static import static
 from .views import AdminNotificationsAPIView
+from . import views
 
 
 # Create router and register viewsets
@@ -54,6 +56,8 @@ urlpatterns = [
     path("admin/users/", AdminUserListView.as_view(), name="admin-user-list"),
     path("admin/users/<int:user_id>/", AdminUserDetailView.as_view(), name="admin-user-detail"),
     path("admin/change-password/", AdminChangePasswordView.as_view(), name="admin-change-password"),
+    path("found-pet-request/", FoundPetRequestAPIView.as_view(), name="found-pet-request"),
+    path("chatbot/", views.chatbot_response, name="chatbot"),
 ]
 
 # Include all router URLs

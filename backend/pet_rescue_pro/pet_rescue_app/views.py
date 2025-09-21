@@ -31,6 +31,55 @@ import random
 from django.core.mail import send_mail
 from rest_framework.permissions import AllowAny
 from django.core.cache import cache
+import os
+import json
+import google.generativeai as genai
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+@csrf_exempt
+def chatbot_response(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            user_message = data.get("message", "")
+            section = data.get("section", "")  # ✅ context info from frontend
+
+            # Context-aware prompt
+            context = f"""
+            You are Pet Rescue Assistant for the project pet_rescue_pro.
+
+            The user is currently in the '{section}' section of the dashboard.
+
+            Rules for context:
+            - If in 'pet-owner', focus on pet ownership and lost pet reports.
+            - If in 'pet-rescuer', focus on rescue activities and medical history.
+            - If in 'pet-adopter', focus on adoption and available pets.
+            - If section is empty or unclear, give a friendly response and guide back to project features.
+
+            General behavior:
+            - Be friendly and conversational. Respond to greetings (hi, hello, hey) warmly.
+            - If the user asks about general things (weather, math, chit-chat), you may answer briefly,
+              but always guide the conversation back to pet rescue, adoption, or project features.
+            - Keep your answers concise and helpful, like a real assistant inside the project.
+            """
+
+            # Call Gemini
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            response = model.generate_content(f"{context}\n\nUser: {user_message}\nAssistant:")
+
+            reply = response.text.strip() if response and response.text else "⚠️ No response from Gemini."
+
+        except Exception as e:
+            reply = f"⚠️ Error connecting to Gemini API: {str(e)}"
+
+        return JsonResponse({"reply": reply})
+
+    # For GET requests → return health check
+    return JsonResponse({"status": "Chatbot API running ✅"}, status=200)
 
 # -------------------------
 # PetType ViewSet
@@ -895,3 +944,53 @@ class AdminManageReportStatusAPIView(APIView):
             )
         except PetReport.DoesNotExist:
             return Response({"error": "Report not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+class FoundPetRequestAPIView(APIView): # Inheriting from APIView for public read access
+    permission_classes = [IsAuthenticated] # Assuming users must be logged in to view
+
+    def get(self, request):
+        # 1. Filter Accepted 'Found' reports
+        reports = PetReport.objects.filter(
+            pet_status="Found",
+            report_status="Accepted"
+        )
+
+        data = []
+        for report in reports:
+            pet_obj = report.pet
+            medical_history = PetMedicalHistory.objects.filter(pet=pet_obj).first()
+            
+            medical_data = {
+                "last_vaccinated_date": medical_history.last_vaccinated_date.isoformat() if medical_history and medical_history.last_vaccinated_date else None,
+                "vaccination_name": medical_history.vaccination_name if medical_history else None,
+                "disease_name": medical_history.disease_name if medical_history else None,
+                "stage": medical_history.stage if medical_history else None,
+                "no_of_years": medical_history.no_of_years if medical_history else None,
+            }
+            
+            data.append({
+                "report_id": report.id,
+                "report_status": report.report_status,
+                "pet_status": report.pet_status,
+                "image": report.image.url if report.image else None,
+                "pet": {
+                    "id": pet_obj.id,
+                    "name": pet_obj.name,
+                    "pet_type": str(pet_obj.pet_type) if pet_obj.pet_type else None,
+                    "breed": pet_obj.breed,
+                    "age": pet_obj.age,
+                    "color": pet_obj.color,
+                    "address": pet_obj.address, 
+                    "description": pet_obj.description,
+                    "city": pet_obj.city,
+                    "state": pet_obj.state,
+                    "pincode": pet_obj.pincode, # Added pincode
+                    "gender": pet_obj.gender,
+                    "is_diseased": pet_obj.is_diseased,
+                    "is_vaccinated": pet_obj.is_vaccinated,
+                    "medical_history": medical_data,
+                }
+            })
+        return Response({"found_pets": data}, status=status.HTTP_200_OK)

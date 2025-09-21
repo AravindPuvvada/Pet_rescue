@@ -7,6 +7,8 @@ import VerifyAccount from "./components/auth/VerifyAccount";
 import MainPage from "./components/auth/MainPage";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import HomePage from "./HomePage";
+import Chatbot from "../src/components/chatbot/Chatbox.tsx"; //✅ Import Chatbot
+import { ChatProvider } from "./components/chatbot/ChatContext.tsx";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem("access_token");
@@ -21,6 +23,7 @@ function App() {
 
   return (
     <Router>
+      <ChatProvider>
       <Routes>
         {/* Public Landing Page */}
         <Route path="/" element={<HomePage />} />
@@ -63,6 +66,9 @@ function App() {
           }
         />
       </Routes>
+      {/* ✅ Global Chatbot (visible only if logged in) */}
+        {token && <Chatbot />}
+      </ChatProvider>
     </Router>
   );
 }
