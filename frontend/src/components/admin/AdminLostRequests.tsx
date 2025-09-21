@@ -1,8 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-// Import necessary types and service from api.ts
-import { apiService } from '../../services/api'; 
-// Use 'import type' for all interfaces due to verbatimModuleSyntax
-import type { PetReport, PetType, AdminPetReport } from '../../services/api'; 
+import { apiService } from '../../services/api';
+import type { PetReport, PetType, AdminPetReport } from '../../services/api';
 
 // --- UI Interface Definition ---
 interface UILostPetReport {

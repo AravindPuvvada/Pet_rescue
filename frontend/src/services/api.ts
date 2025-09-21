@@ -13,6 +13,49 @@ export interface User {
   is_superuser: boolean; // ✅ add this
 }
 
+export interface ProfileData {
+  username: string;
+  email: string;
+  password?: string;
+  gender?: string;
+  phone?: string;
+  address?: string;
+  pincode?: string;
+  profile_image?: string;
+}
+
+export interface ChangePasswordData {
+  old_password: string;
+  new_password: string;
+}
+
+export interface StoredAccount {
+  id: string;
+  username: string;
+  email: string;
+  profile_image?: string | null;
+  lastUsed: string;
+}
+
+export interface CurrentUser {
+  id: number;
+  username: string;
+  email: string;
+  is_staff?: boolean;
+  is_superuser?: boolean;
+  // add extra fields as your backend returns them
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  email: string;
+  is_active: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
+  // other fields optionally returned by admin user list
+}
+
 export interface PetType {
   id: number;
   type: string;
@@ -39,6 +82,13 @@ export interface Pet {
   modified_date: string;
   created_by?: User;
   modified_by?: User;
+  medical_history?: { 
+        last_vaccinated_date?: string;
+        vaccination_name?: string;
+        disease_name?: string;
+        stage?: string;
+        no_of_years?: string;
+    } | null;
 }
 
 export interface PetReport {
@@ -84,18 +134,6 @@ export interface Notification {
   created_at: string;
 }
 
-// export interface LostPetRequest {
-//   pet: Partial<Pet>;
-//   report: Partial<PetReport>;
-//   medical_history?: {
-//     last_vaccinated_date?: string;
-//     vaccination_name?: string;
-//     disease_name?: string;
-//     stage?: number;
-//     no_of_years?: number;
-//   };
-// }
-// For creating a Lost Pet request (POST)
 export interface LostPetRequestCreate {
   pet: Partial<Pet>;
   report: Partial<PetReport>;
@@ -123,6 +161,20 @@ export interface LostPetRequest {
     age?: number;
     color?: string;
   };
+  address?: string; 
+    city?: string;
+    state?: string;
+    gender?: string;
+    description?:string;
+    is_diseased: boolean; // Correct
+    is_vaccinated: boolean; // Correct
+    medical_history?: { 
+        last_vaccinated_date?: string;
+        vaccination_name?: string;
+        disease_name?: string;
+        stage?: string;
+        no_of_years?: string;
+    } | null;
 }
 
 export interface AdminApprovalRequest {
@@ -158,8 +210,20 @@ export interface AdminPetReport {
   created_date: string;
   modified_date: string; // Now included from the serializer
 }
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  pincode?: string;
+  gender?: string;
+  profile_image?: string;
+  is_superuser: boolean;
+}
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
 
 class ApiService {
   private getAuthHeaders() {
@@ -169,6 +233,14 @@ class ApiService {
       ...(token && { 'Authorization': `Bearer ${token}` })
     };
   }
+  private getAuthHeadersForFormData() {
+  const token = localStorage.getItem('access_token');
+  return {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    // ❌ Do NOT add 'Content-Type'
+  };
+}
+
 
   private getMultipartHeaders() {
     const token = localStorage.getItem('access_token');
@@ -251,6 +323,42 @@ class ApiService {
   async getProfile(): Promise<User> {
     return this.request<User>('/profile_details/');
   }
+
+  async updateProfile(id: number, profileData: Partial<User>): Promise<UserProfile> {
+  const url = `${API_BASE_URL}/profiles/${id}/`;
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`,
+    },
+    body: JSON.stringify(profileData),
+  });
+  return this.handleResponse<UserProfile>(response);
+}
+
+async updateProfileWithImage(id: number, profileData: FormData): Promise<User> {
+  const url = `${API_BASE_URL}/profiles/${id}/`;
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`, // ✅ only Authorization
+    },
+    body: profileData, // ✅ FormData
+  });
+
+  return this.handleResponse<User>(response);
+}
+
+
+
+
+
+async deleteProfile(id: number): Promise<void> {
+  return this.request<void>(`/profiles/${id}/`, { method: 'DELETE' });
+}
+
 
   // Pet endpoints
   async getPets(): Promise<Pet[]> {
@@ -339,6 +447,20 @@ async createLostPetRequest(requestData: LostPetRequestCreate): Promise<{
       age?: number;
       color?: string;
     };
+    address?: string; 
+      city?: string;
+      state?: string;
+      gender?: string;
+      description?:string;
+      is_diseased: boolean; // Displayed in the status section
+      is_vaccinated: boolean; // Displayed in the status section
+      medical_history?: { 
+        last_vaccinated_date?: string;
+        vaccination_name?: string;
+        disease_name?: string;
+        stage?: string;
+        no_of_years?: string;
+      } | null;
   }> }> {
     return this.request<{ lost_pets: Array<{
       report_id: number;
@@ -353,6 +475,20 @@ async createLostPetRequest(requestData: LostPetRequestCreate): Promise<{
         age?: number;
         color?: string;
       };
+      address?: string; 
+      city?: string;
+      state?: string;
+      gender?: string;
+      description?:string;
+      is_diseased: boolean; // Displayed in the status section
+      is_vaccinated: boolean; // Displayed in the status section
+      medical_history?: { 
+        last_vaccinated_date?: string;
+        vaccination_name?: string;
+        disease_name?: string;
+        stage?: string;
+        no_of_years?: string;
+      } | null;
     }> }>('/lost-pet-request/');
   }
 
@@ -471,12 +607,12 @@ async createPetMedicalHistory(
 }
 
   // Update Profile
-  async updateProfile(profileData: Partial<User>): Promise<User> {
-    return this.request<User>('/profiles/profile_details/', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    });
-  }
+  // async updateProfile(profileData: Partial<User>): Promise<User> {
+  //   return this.request<User>('/profiles/profile_details/', {
+  //     method: 'PUT',
+  //     body: JSON.stringify(profileData),
+  //   });
+  // }
 
   // Pet Reports
   async getPetReports(): Promise<PetReport[]> {
@@ -568,12 +704,17 @@ async createPetMedicalHistory(
     });
     return this.handleResponse<User>(response);
   }
-
-  async deleteProfile(id: number): Promise<void> {
-    return this.request<void>(`/profiles/${id}/`, {
-      method: 'DELETE',
-    });
-  }
+async changePassword(data: { current_password: string; new_password: string }) {
+  return this.request('/admin/change-password/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+  // async deleteProfile(id: number): Promise<void> {
+  //   return this.request<void>(`/profiles/${id}/`, {
+  //     method: 'DELETE',
+  //   });
+  // }
   // Utility methods
   isAuthenticated(): boolean {
     return !!localStorage.getItem('access_token');
@@ -595,6 +736,102 @@ async createPetMedicalHistory(
   if (imagePath.startsWith('media/')) return `${baseUrl}/${imagePath}`;
   return `${baseUrl}/media/${imagePath}`;
 }
+async change_Password(passwordData: ChangePasswordData) {
+    return this.request('/profiles/change-password/', {
+      method: 'POST',
+      body: JSON.stringify(passwordData),
+    });
+  }
+async getAdminUsers(
+  params?: {
+    search?: string;
+    role?: string;
+    page?: number;
+    gender?: string;
+    superuser?: string;
+  }
+): Promise<AdminUser[] | { results: AdminUser[]; count: number }> {
+  const qs = new URLSearchParams();
+
+  if (params?.search) qs.set('search', params.search);
+  if (params?.role && params.role !== 'all') qs.set('role', params.role);
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.gender) qs.set('gender', params.gender);
+  if (params?.superuser) qs.set('superuser', params.superuser);
+
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+
+  return this.request<AdminUser[] | { results: AdminUser[]; count: number }>(
+    `/admin/users/${query}`
+  );
+}
+getStoredAccounts(): StoredAccount[] {
+    const data = localStorage.getItem('storedAccounts');
+    return data ? JSON.parse(data) : [];
+  }
+
+  saveStoredAccounts(accounts: StoredAccount[]) {
+    localStorage.setItem('storedAccounts', JSON.stringify(accounts));
+  }
+
+  addStoredAccount(account: StoredAccount): boolean {
+    const accounts = this.getStoredAccounts();
+    const exists = accounts.find(a => a.id === account.id);
+    if (exists) {
+      const updated = accounts.map(a => (a.id === account.id ? { ...a, ...account } : a));
+      this.saveStoredAccounts(updated);
+      return true;
+    }
+    accounts.unshift(account);
+    this.saveStoredAccounts(accounts);
+    return true;
+  }
+switchToAccount(accountId: string): boolean {
+    const accounts = this.getStoredAccounts();
+    const account = accounts.find(acc => acc.id === accountId);
+    if (!account) return false;
+
+    account.lastUsed = new Date().toISOString();
+    this.saveStoredAccounts(accounts);
+    localStorage.setItem('currentAccountId', accountId);
+    return true;
+  }
+
+  removeAccount(accountId: string): boolean {
+    let accounts = this.getStoredAccounts();
+    accounts = accounts.filter(acc => acc.id !== accountId);
+    this.saveStoredAccounts(accounts);
+
+    const currentId = this.getCurrentAccountId();
+    if (currentId === accountId) {
+      localStorage.removeItem('currentAccountId');
+    }
+    return true;
+  }
+
+  getCurrentAccountId(): string | null {
+    return localStorage.getItem('currentAccountId');
+  }
+
+  updateCurrentAccountProfile(updatedProfile: Partial<ProfileData>): boolean {
+    const currentId = this.getCurrentAccountId();
+    if (!currentId) return false;
+    const accounts = this.getStoredAccounts();
+    const idx = accounts.findIndex(a => a.id === currentId);
+    if (idx === -1) return false;
+
+    const existing = accounts[idx];
+    const merged = {
+      ...existing,
+      username: (updatedProfile.username as string) ?? existing.username,
+      email: (updatedProfile.email as string) ?? existing.email,
+      profile_image: (updatedProfile.profile_image as string | null) ?? existing.profile_image,
+    };
+    accounts[idx] = merged;
+    this.saveStoredAccounts(accounts);
+    return true;
+  }
+
 
 }
 

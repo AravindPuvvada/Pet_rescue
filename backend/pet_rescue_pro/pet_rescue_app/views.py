@@ -46,7 +46,7 @@ class PetTypeViewSet(viewsets.ModelViewSet):
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all().order_by("id")
     serializer_class = ProfileSerializer
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -72,24 +72,23 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    # ✅ POST /api/profiles/change_password/
+    @action(detail=False, methods=['post'], url_path='change-password')
+    def change_password(self, request):
+        user = request.user
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
 
+        if not user.check_password(old_password):
+            return Response({"error": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
 
-# -------------------------
-# Pet ViewSet
-# -------------------------
-# class PetViewSet(viewsets.ModelViewSet):
-#     queryset = Pet.objects.all().order_by("id")
-#     serializer_class = PetSerializer
-#     parser_classes = (MultiPartParser, FormParser)
-#     permission_classes = [IsAuthenticated]  # ✅ Requires auth
+        if not new_password:
+            return Response({"error": "New password is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-#     def perform_create(self, serializer):
-#         user = self.request.user if self.request.user.is_authenticated else None
-#         serializer.save(created_by=user, modified_by=user)
-
-#     def perform_update(self, serializer):
-#         user = self.request.user if self.request.user.is_authenticated else None
-#         serializer.save(modified_by=user)
+        user.set_password(new_password)
+        user.save()
+        return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
 
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.all().order_by("id")
@@ -208,54 +207,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
         # Return the updated notification data
         serializer = self.get_serializer(notification)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-# # -------------------------
-# # Register API
-# # -------------------------
-# class RegisterAPIView(APIView):
-#     def post(self, request):
-#         serializer = ProfileSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.save()
-#             return Response({
-#                 "message": "Profile registered successfully",
-#                 "user": serializer.data
-#             }, status=status.HTTP_201_CREATED)
-
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-# # -------------------------
-# # Login API with JWT
-# # -------------------------
-# class LoginAPIView(APIView):
-#     def post(self, request):
-#         serializer = LoginSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-
-#         email = serializer.validated_data["email"]
-#         raw_password = serializer.validated_data["password"]
-
-#         try:
-#             user = Profile.objects.get(email=email)
-#         except Profile.DoesNotExist:
-#             return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
-
-#         if check_password(raw_password, user.password):
-#             refresh = RefreshToken.for_user(user)
-#             refresh["email"] = user.email
-#             access_token = str(refresh.access_token)
-
-#             return Response({
-#                 "refresh_token": str(refresh),
-#                 "access_token": access_token,
-#                 "user_id": user.id,
-#                 "username": user.username,
-#                 "email": user.email,
-#                 "is_superuser": user.is_superuser,
-#                 "detail": "Login successful"
-#             })
-
-#         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class RegisterAPIView(APIView):
     permission_classes = [AllowAny]
@@ -518,18 +469,41 @@ class LostPetRequestAPIView(APIView):
 
         data = []
         for report in reports:
+            pet_obj = report.pet
+            
+            # 💡 Fetch Medical History
+            medical_history = PetMedicalHistory.objects.filter(pet=pet_obj).first()
+            
+            # Map medical fields, defaulting to None if no history exists
+            medical_data = {
+                "last_vaccinated_date": medical_history.last_vaccinated_date.isoformat() if medical_history and medical_history.last_vaccinated_date else None,
+                "vaccination_name": medical_history.vaccination_name if medical_history else None,
+                "disease_name": medical_history.disease_name if medical_history else None,
+                "stage": medical_history.stage if medical_history else None,
+                "no_of_years": medical_history.no_of_years if medical_history else None,
+            }
+            
             data.append({
                 "report_id": report.id,
                 "report_status": report.report_status,
                 "pet_status": report.pet_status,
                 "image": report.image.url if report.image else None,
                 "pet": {
-                    "id": report.pet.id,
-                    "name": report.pet.name,
-                    "pet_type": str(report.pet.pet_type) if report.pet.pet_type else None,
-                    "breed": report.pet.breed,
-                    "age": report.pet.age,
-                    "color": report.pet.color,
+                    "id": pet_obj.id,
+                    "name": pet_obj.name,
+                    "pet_type": str(pet_obj.pet_type) if pet_obj.pet_type else None,
+                    "breed": pet_obj.breed,
+                    "age": pet_obj.age,
+                    "description": pet_obj.description,
+                    "color": pet_obj.color,
+                    "address": pet_obj.address, 
+                    "city": pet_obj.city,
+                    "state": pet_obj.state,
+                    "gender": pet_obj.gender,
+                    "is_diseased": pet_obj.is_diseased,
+                    "is_vaccinated": pet_obj.is_vaccinated,
+                    # ✅ EMBED MEDICAL DATA
+                    "medical_history": medical_data,
                 }
             })
 
@@ -700,17 +674,33 @@ class UserRequestsListAPIView(APIView):
 
 
 class AdminUserListView(APIView):
-    permission_classes = [IsAuthenticated]  # must be logged in
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
 
-        # ✅ Only superusers can access
+        # Only superusers can access this list
         if not user.is_superuser:
             return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        users = Profile.objects.all()
-        serializer = AdminUserSerializer(users, many=True)
+        qs = Profile.objects.all().order_by("-created_at")
+
+        # Simple filters from query params
+        gender = request.query_params.get("gender")        # expect: Male / Female / Other
+        superuser = request.query_params.get("superuser")  # expect: true / false / 1 / 0
+
+        if gender:
+            qs = qs.filter(gender__iexact=gender)
+
+        if superuser is not None:
+            s = superuser.lower()
+            if s in ("true", "1", "yes"):
+                qs = qs.filter(is_superuser=True)
+            elif s in ("false", "0", "no"):
+                qs = qs.filter(is_superuser=False)
+            # otherwise ignore invalid values
+
+        serializer = AdminUserSerializer(qs, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -728,25 +718,48 @@ class AdminUserDetailView(APIView):
         except Profile.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = AdminUserSerializer(target_user, data=request.data, partial=True)
+        serializer = AdminUserSerializer(
+            target_user, data=request.data, partial=True, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, user_id):
+
+class AdminChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         user = request.user
+        current_password = request.data.get("current_password")
+        new_password = request.data.get("new_password")
 
-        if not user.is_superuser:
-            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+        if not current_password or not new_password:
+            return Response(
+                {"error": "Current password and new password are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        try:
-            target_user = Profile.objects.get(id=user_id)
-        except Profile.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        if not check_password(current_password, user.password):
+            return Response(
+                {"error": "Current password is incorrect"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        target_user.delete()
-        return Response({"message": "User deleted successfully"}, status=status.HTTP_200_OK)
+        if len(new_password) < 6:
+            return Response(
+                {"error": "New password must be at least 6 characters long"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response(
+            {"message": "Password updated successfully"},
+            status=status.HTTP_200_OK,
+        )
     
 
 

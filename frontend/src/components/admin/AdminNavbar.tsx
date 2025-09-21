@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Shield, User, Settings, LogOut, ChevronDown, Bell } from 'lucide-react';
 import { apiService } from '../../services/api';
-import type { Notification } from '../../services/api'; // 👈 Correct import for the type
+import type { Notification } from '../../services/api';
 
 interface AdminNavbarProps {
   user?: {

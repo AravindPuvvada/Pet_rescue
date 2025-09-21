@@ -262,8 +262,22 @@ class UserAdoptionRequestSerializer(serializers.ModelSerializer):
 class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ["id", "username", "email","gender","phone","address", "created_date"]
-        read_only_fields = ["id", "created_at", "email"]  # email fixed, only status can be changed
+        fields = [
+            "id",
+            "username",
+            "email",
+            "gender",
+            "phone",
+            "address",
+            "pincode",
+            "profile_image",   # ✅ from model
+            "created_at",      # ✅ matches your model field
+            "updated_at",      # ✅ matches your model field
+            "is_active",
+            "is_staff",
+            "is_superuser"
+        ]
+        read_only_fields = ["id", "email", "created_at", "updated_at"]
 
 class AdminPetReportSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)

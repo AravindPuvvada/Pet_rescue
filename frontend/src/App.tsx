@@ -3,8 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";  
 import ForgotPassword from "./components/auth/ForgotPassword";
-// import ResetPassword from "./components/auth/ResetPassword";     // ✅ request reset
-// import ConfirmPassword from "./components/auth/ConfirmPassword"; // ✅ confirm reset
 import VerifyAccount from "./components/auth/VerifyAccount";
 import MainPage from "./components/auth/MainPage";
 import AdminDashboard from "./components/admin/AdminDashboard";

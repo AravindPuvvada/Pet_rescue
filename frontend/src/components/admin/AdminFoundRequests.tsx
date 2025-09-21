@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { apiService } from '../../services/api'; 
-import type { PetReport, PetType, AdminPetReport } from '../../services/api'; 
-
+import { apiService } from '../../services/api';
+import type { PetReport,PetType, AdminPetReport } from '../../services/api';
 // --- UI Interface Definition ---
 interface UIFoundPetReport {
   id: number;
