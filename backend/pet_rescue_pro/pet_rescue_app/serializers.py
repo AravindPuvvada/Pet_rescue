@@ -64,8 +64,20 @@ class PetSerializer(serializers.ModelSerializer):
         if pet_type_name:
             pet_type_obj, created = PetType.objects.get_or_create(type=pet_type_name)
             validated_data['pet_type'] = pet_type_obj
-        
         return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        # Pop the pet_type string from the data, if it exists
+        pet_type_name = validated_data.pop('pet_type', None)
+
+        # If a new pet_type name was provided, find or create the PetType object
+        if pet_type_name is not None:
+            pet_type_obj, created = PetType.objects.get_or_create(type=pet_type_name)
+            # Assign the actual object to the instance before saving
+            instance.pet_type = pet_type_obj
+
+        # Allow the default update method to handle all other fields
+        return super().update(instance, validated_data)
 
 # ---------------- PetReportSerializer ----------------
 class PetReportSerializer(serializers.ModelSerializer):

@@ -142,7 +142,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.all().order_by("id")
     serializer_class = PetSerializer
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (MultiPartParser, FormParser,JSONParser)
     permission_classes = [IsAuthenticated]  # ✅ Requires auth
 
     def get_serializer_context(self):
@@ -974,6 +974,7 @@ class FoundPetRequestAPIView(APIView): # Inheriting from APIView for public read
                 "report_status": report.report_status,
                 "pet_status": report.pet_status,
                 "image": report.image.url if report.image else None,
+                "created_date": report.created_date.isoformat(),
                 "pet": {
                     "id": pet_obj.id,
                     "name": pet_obj.name,
@@ -992,4 +993,112 @@ class FoundPetRequestAPIView(APIView): # Inheriting from APIView for public read
                     "medical_history": medical_data,
                 }
             })
+        return Response({"found_pets": data}, status=status.HTTP_200_OK)
+    
+
+class UserLostPetsAPIView(APIView):
+    """
+    An API endpoint that returns a list of lost pets reported
+    by the currently authenticated user.
+    """
+    permission_classes = [IsAuthenticated] # Ensures only logged-in users can access
+
+    def get(self, request):
+        # Filter PetReport objects by the current user and where the pet status is 'Lost'
+        reports = PetReport.objects.filter(
+        user=request.user,          # ✅ Filters for the currently logged-in user
+        pet_status="Lost",          # ✅ Filters for reports where the pet is 'Lost'
+        report_status="Accepted"    # ✅ Filters for reports that have been 'Accepted'
+        ).order_by("-created_date")
+
+        data = []
+        for report in reports:
+            pet_obj = report.pet
+            medical_history = PetMedicalHistory.objects.filter(pet=pet_obj).first()
+            
+            medical_data = {
+                "last_vaccinated_date": medical_history.last_vaccinated_date.isoformat() if medical_history and medical_history.last_vaccinated_date else None,
+                "vaccination_name": medical_history.vaccination_name if medical_history else None,
+                "disease_name": medical_history.disease_name if medical_history else None,
+                "stage": medical_history.stage if medical_history else None,
+                "no_of_years": medical_history.no_of_years if medical_history else None,
+            }
+            
+            data.append({
+                "report_id": report.id,
+                "report_status": report.report_status,
+                "pet_status": report.pet_status,
+                "image": report.image.url if report.image else None,
+                "created_date": report.created_date.isoformat(),
+                "pet": {
+                    "id": pet_obj.id,
+                    "name": pet_obj.name,
+                    "pet_type": str(pet_obj.pet_type) if pet_obj.pet_type else None,
+                    "breed": pet_obj.breed,
+                    "age": pet_obj.age,
+                    "description": pet_obj.description,
+                    "color": pet_obj.color,
+                    "address": pet_obj.address, 
+                    "city": pet_obj.city,
+                    "state": pet_obj.state,
+                    "gender": pet_obj.gender,
+                    "is_diseased": pet_obj.is_diseased,
+                    "is_vaccinated": pet_obj.is_vaccinated,
+                    "medical_history": medical_data,
+                    
+                }
+            })
+
+        # Use the same response structure as the other endpoint
+        return Response({"lost_pets": data}, status=status.HTTP_200_OK)
+    
+class UserFoundPetsAPIView(APIView):
+    """
+    An API endpoint that returns a list of found pets reported
+    by the currently authenticated user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Filter reports by the current user and for 'Found' pets
+        reports = PetReport.objects.filter(user=request.user, pet_status="Found", report_status="Accepted").order_by("-created_date")
+
+        data = []
+        for report in reports:
+            pet_obj = report.pet
+            medical_history = PetMedicalHistory.objects.filter(pet=pet_obj).first()
+            
+            medical_data = {
+                "last_vaccinated_date": medical_history.last_vaccinated_date.isoformat() if medical_history and medical_history.last_vaccinated_date else None,
+                "vaccination_name": medical_history.vaccination_name if medical_history else None,
+                "disease_name": medical_history.disease_name if medical_history else None,
+                "stage": medical_history.stage if medical_history else None,
+                "no_of_years": medical_history.no_of_years if medical_history else None,
+            }
+            
+            data.append({
+                "report_id": report.id,
+                "report_status": report.report_status,
+                "pet_status": report.pet_status,
+                "image": report.image.url if report.image else None,
+                "created_date": report.created_date.isoformat(),
+                "pet": {
+                    "id": pet_obj.id,
+                    "name": pet_obj.name,
+                    "pet_type": str(pet_obj.pet_type) if pet_obj.pet_type else None,
+                    "breed": pet_obj.breed,
+                    "age": pet_obj.age,
+                    "description": pet_obj.description,
+                    "color": pet_obj.color,
+                    "address": pet_obj.address, 
+                    "city": pet_obj.city,
+                    "state": pet_obj.state,
+                    "gender": pet_obj.gender,
+                    "is_diseased": pet_obj.is_diseased,
+                    "is_vaccinated": pet_obj.is_vaccinated,
+                    "medical_history": medical_data,
+                }
+            })
+        
+        # We'll use the same response key 'found_pets' for consistency
         return Response({"found_pets": data}, status=status.HTTP_200_OK)

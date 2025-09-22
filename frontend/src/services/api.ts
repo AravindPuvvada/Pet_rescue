@@ -176,6 +176,7 @@ export interface LostPetRequest {
   report_status: string;
   pet_status: string;
   image?: string;
+  created_date?: string;
   pet: {
     id: number;
     name: string;
@@ -198,6 +199,15 @@ export interface LostPetRequest {
         stage?: string;
         no_of_years?: string;
     } | null;
+}
+
+export interface MyLostPetResponse {
+  report_id: number;
+  report_status: string;
+  pet_status: string;
+  image?: string;
+  created_date: string;
+  pet: Pet; 
 }
 
 export interface AdminApprovalRequest {
@@ -414,7 +424,7 @@ async deleteProfile(id: number): Promise<void> {
 
   async updatePet(id: number, petData: Partial<Pet>): Promise<Pet> {
     return this.request<Pet>(`/pets/${id}/`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(petData),
     });
   }
@@ -859,6 +869,7 @@ switchToAccount(accountId: string): boolean {
     report_status: string;
     pet_status: string;
     image?: string;
+    created_date?: string;
     pet: {
       id: number;
       name: string;
@@ -888,6 +899,7 @@ switchToAccount(accountId: string): boolean {
       report_status: string;
       pet_status: string;
       image?: string;
+      created_date?: string;
       pet: {
         id: number;
         name: string;
@@ -915,7 +927,35 @@ switchToAccount(accountId: string): boolean {
     }> }>('/found-pet-request/'); // ⭐ NEW ENDPOINT
   }
 
-
+async getMyLostPets(): Promise<{ lost_pets: MyLostPetResponse[] }> {
+    return this.request<{ lost_pets: MyLostPetResponse[] }>('/my-lost-pets/');
+  }
+async getMyFoundPets(): Promise<{ found_pets: MyLostPetResponse[] }> {
+    return this.request<{ found_pets: MyLostPetResponse[] }>('/my-found-pets/');
+  }
+async createMedicalHistory(data: Partial<PetMedicalHistory>): Promise<PetMedicalHistory> {
+    return this.request<PetMedicalHistory>('/pet-medical-history/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+async updateMedicalHistory(id: number, data: Partial<PetMedicalHistory>): Promise<PetMedicalHistory> {
+    return this.request<PetMedicalHistory>(`/pet-medical-history/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+async getMedicalHistoryForPet(petId: number): Promise<PetMedicalHistory | null> {
+    try {
+      // A standard ViewSet supports filtering via query parameters
+      const response = await this.request<PetMedicalHistory[]>(`/pet-medical-history/?pet=${petId}`);
+      // The response will be an array, we just need the first (and likely only) item
+      return response.length > 0 ? response[0] : null;
+    } catch (error) {
+      console.error('Failed to fetch medical history:', error);
+      return null;
+  }
+}
 }
 
 export const apiService = new ApiService();
