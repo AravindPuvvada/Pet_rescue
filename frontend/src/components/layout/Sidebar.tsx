@@ -36,7 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   ];
 
   return (
-    <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white/80 backdrop-blur-md shadow-2xl border-r border-white/20 z-40">
+    <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white/80 backdrop-blur-md shadow-2xl border-r border-white/20 z-40 mt-10">
       <div className="p-6">
         <nav className="space-y-3">
           {menuItems.map((item) => {

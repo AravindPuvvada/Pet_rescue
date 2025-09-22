@@ -1,15 +1,119 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AdminNavbar from './AdminNavbar';
-import AdminSidebar from './AdminSidebar';
-import AdminOverview from './AdminOverview';
-import AdminUsers from './AdminUsers';
-import AdminPets from './AdminPets';
-import AdminLostRequests from './AdminLostRequests';
-import AdminFoundRequests from './AdminFoundRequests';
-import AdminAdoptRequests from './AdminAdoptRequests';
-import AdminNotifications from './AdminNotifications';
-import { apiService } from '../../services/api';
+// import React, { useState, useEffect } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import AdminNavbar from './AdminNavbar';
+// import AdminSidebar from './AdminSidebar';
+// import AdminOverview from './AdminOverview';
+// import AdminUsers from './AdminUsers';
+// import AdminPets from './AdminPets';
+// import AdminLostRequests from './AdminLostRequests';
+// import AdminFoundRequests from './AdminFoundRequests';
+// import AdminAdoptRequests from './AdminAdoptRequests';
+// import AdminNotifications from './AdminNotifications';
+// import { apiService } from '../../services/api';
+
+// interface User {
+//   id: number;
+//   username: string;
+//   email: string;
+//   is_superuser: boolean;
+// }
+
+// const AdminDashboard: React.FC = () => {
+//   const [activeSection, setActiveSection] = useState('overview');
+//   const [user, setUser] = useState<User | null>(null);
+//   const [loading, setLoading] = useState(true);
+//   const navigate = useNavigate();
+
+//   const handleLogout = () => {
+//     apiService.logout();
+//     navigate('/login');
+//   };
+
+//   useEffect(() => {
+//   const fetchUserProfile = async () => {
+//     try {
+//       const userData = await apiService.getProfile();
+//       if (!userData.is_superuser) {
+//         navigate('/mainpage');
+//         return;
+//       }
+//       setUser(userData);
+//     } catch (error) {
+//       console.error('Error fetching user profile:', error);
+//       handleLogout();
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   fetchUserProfile();
+// }, [navigate]);  // ✅ added handleLogout
+
+//   const renderContent = () => {
+//     switch (activeSection) {
+//       case 'overview':
+//         return <AdminOverview />;
+//       case 'users':
+//         return <AdminUsers />;
+//       case 'pets':
+//         return <AdminPets />;
+//       case 'lost-requests':
+//         return <AdminLostRequests />;
+//       case 'found-requests':
+//         return <AdminFoundRequests />;
+//       case 'adopt-requests':
+//         return <AdminAdoptRequests />;
+//       case 'notifications':
+//         return <AdminNotifications />;
+//       default:
+//         return <AdminOverview />;
+//     }
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+//         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gray-50">
+//       {/* Top Navbar */}
+//       <AdminNavbar user={user} onLogout={handleLogout} />
+      
+//       {/* Main Layout */}
+//       <div className="flex">
+//         {/* Left Sidebar */}
+//         <AdminSidebar 
+//           activeSection={activeSection} 
+//           onSectionChange={setActiveSection} 
+//         />
+        
+//         {/* Main Content */}
+//         <div className="flex-1 ml-64 mt-16 p-6">
+//           {renderContent()}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default AdminDashboard;
+
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import AdminNavbar from "./AdminNavbar";
+import AdminSidebar from "./AdminSidebar";
+import AdminOverview from "./AdminOverview";
+import AdminUsers from "./AdminUsers";
+import AdminPets from "./AdminPets";
+import AdminLostRequests from "./AdminLostRequests";
+import AdminFoundRequests from "./AdminFoundRequests";
+import AdminAdoptRequests from "./AdminAdoptRequests";
+import AdminNotifications from "./AdminNotifications";
+import { apiService } from "../../services/api";
 
 interface User {
   id: number;
@@ -18,52 +122,52 @@ interface User {
   is_superuser: boolean;
 }
 
-const AdminDashboard: React.FC = () => {
-  const [activeSection, setActiveSection] = useState('overview');
+interface AdminDashboardProps {
+  onLogout: () => void;
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+  const [activeSection, setActiveSection] = useState("overview");
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    apiService.logout();
-    navigate('/login');
-  };
-
   useEffect(() => {
-  const fetchUserProfile = async () => {
-    try {
-      const userData = await apiService.getProfile();
-      if (!userData.is_superuser) {
-        navigate('/mainpage');
-        return;
+    const fetchUserProfile = async () => {
+      try {
+        const userData = await apiService.getProfile();
+        if (!userData.is_superuser) {
+          navigate("/mainpage");
+          return;
+        }
+        setUser(userData);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        onLogout(); // ✅ use the passed down logout
+        navigate("/login");
+      } finally {
+        setLoading(false);
       }
-      setUser(userData);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      handleLogout();
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchUserProfile();
-}, [navigate]);  // ✅ added handleLogout
+    fetchUserProfile();
+  }, [onLogout, navigate]);
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'overview':
+      case "overview":
         return <AdminOverview />;
-      case 'users':
+      case "users":
         return <AdminUsers />;
-      case 'pets':
+      case "pets":
         return <AdminPets />;
-      case 'lost-requests':
+      case "lost-requests":
         return <AdminLostRequests />;
-      case 'found-requests':
+      case "found-requests":
         return <AdminFoundRequests />;
-      case 'adopt-requests':
+      case "adopt-requests":
         return <AdminAdoptRequests />;
-      case 'notifications':
+      case "notifications":
         return <AdminNotifications />;
       default:
         return <AdminOverview />;
@@ -81,20 +185,18 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navbar */}
-      <AdminNavbar user={user} onLogout={handleLogout} />
-      
+      <AdminNavbar user={user} onLogout={onLogout} />
+
       {/* Main Layout */}
       <div className="flex">
         {/* Left Sidebar */}
-        <AdminSidebar 
-          activeSection={activeSection} 
-          onSectionChange={setActiveSection} 
+        <AdminSidebar
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
         />
-        
+
         {/* Main Content */}
-        <div className="flex-1 ml-64 mt-16 p-6">
-          {renderContent()}
-        </div>
+        <div className="flex-1 ml-64 mt-16 p-6">{renderContent()}</div>
       </div>
     </div>
   );

@@ -360,7 +360,6 @@ class LoginAPIView(APIView):
 
         return Response(serializer.errors, status=400)
 
-
 # ---------------- Password Reset Request ----------------
 class PasswordResetRequestAPIView(APIView):
     permission_classes = [AllowAny]

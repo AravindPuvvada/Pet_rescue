@@ -73,13 +73,13 @@ class PetReportSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
     image = serializers.ImageField(required=False, allow_null=True)
     image_url = serializers.SerializerMethodField()
-
+    gender = serializers.CharField(source="pet.gender", read_only=True)
     class Meta:
         model = PetReport
         fields = [
             "id", "pet", "user", "pet_status", "report_status",
             "image", "image_url", "is_resolved",
-            "created_date", "modified_date", "created_by", "modified_by"
+            "created_date", "modified_date", "created_by", "modified_by","gender"
         ]
 
     def get_image_url(self, obj):
@@ -94,8 +94,6 @@ class PetReportSerializer(serializers.ModelSerializer):
         if request and hasattr(request, "user"):
             validated_data["user"] = request.user
         return super().create(validated_data)
-
-
 
 # ---------------- Pet Medical History ----------------
 class PetMedicalHistorySerializer(serializers.ModelSerializer):
@@ -193,7 +191,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
     new_password = serializers.CharField(write_only=True)
-
 
 
 # ---------------- Lost Pet Request (Nested) ----------------
