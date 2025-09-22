@@ -24,6 +24,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       icon: PawPrint,
     },
     {
+      id: 'adoption-pets',
+      label: 'Adopt Pet',
+      icon: PawPrint,
+    },
+    {
       id: 'profile',
       label: 'Profile',
       icon: User,

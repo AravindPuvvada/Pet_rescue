@@ -217,7 +217,8 @@ export interface AdminApprovalRequest {
 }
 
 export interface PetAdoptionRequest {
-  pet: number;  // only the ID is needed for creation
+  // ⭐ CHANGED: The key is now 'pet_id' to match the backend serializer
+  pet_id: number;  
   message?: string;
   status: 'Pending' | 'Approved' | 'Rejected';
 }
@@ -679,17 +680,9 @@ async createPetMedicalHistory(
     return this.request<PetAdoption[]>('/pet-adoptions/');
   }
 
-  async createPetAdoption(adoptionData: PetAdoptionRequest): Promise<PetAdoption> {
-  return this.request<PetAdoption>('/pet-adoptions/', {
-    method: 'POST',
-    body: JSON.stringify(adoptionData),
-  });
-}
-
-
   async updatePetAdoption(id: number, adoptionData: Partial<PetAdoption>): Promise<PetAdoption> {
     return this.request<PetAdoption>(`/pet-adoptions/${id}/`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(adoptionData),
     });
   }
@@ -956,6 +949,31 @@ async getMedicalHistoryForPet(petId: number): Promise<PetMedicalHistory | null> 
       return null;
   }
 }
+async getAdoptionPets(): Promise<Pet[]> {
+  try {
+    const response = await this.request<Pet[]>("/adoption-pets/");
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch adoption pets:", error);
+    return [];
+  }
+}
+// api.ts
+// ApiService.ts
+
+
+async getMyPetAdoptions(): Promise<PetAdoption[]> {
+    return this.request<PetAdoption[]>('/my-pet-adoptions/');
+  }
+  
+  async createPetAdoption(adoptionData: PetAdoptionRequest): Promise<PetAdoption> {
+    // The implementation here remains the same, it just sends the data it receives.
+    return this.request<PetAdoption>('/pet-adoptions/', {
+      method: 'POST',
+      body: JSON.stringify(adoptionData),
+  });
+  }
+  
 }
 
 export const apiService = new ApiService();

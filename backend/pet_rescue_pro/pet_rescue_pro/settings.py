@@ -54,6 +54,7 @@ INSTALLED_APPS = [
 
     # your app
     "pet_rescue_app",
+    'django_extensions',
 ]
 
 MIDDLEWARE = [

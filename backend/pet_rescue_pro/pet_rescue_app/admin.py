@@ -96,11 +96,11 @@ class PetMedicalHistoryAdmin(admin.ModelAdmin):
 # -------------------------
 @admin.register(PetReport)
 class PetReportAdmin(admin.ModelAdmin):
-    list_display = ("pet_id","pet", "user", "pet_status", "report_status", "is_resolved", "report_image_tag")
+    list_display = ("pet_id","pet", "user", "pet_status", "report_status", "is_resolved", "report_image_tag","created_date")
     search_fields = ("pet__name", "user__username")
     list_filter = ("pet_status", "report_status", "is_resolved")
     readonly_fields = ("report_image_tag",)
-
+    
     def report_image_tag(self, obj):
         if obj.image:
             return format_html('<img src="{}" style="width:60px;height:60px;" />', obj.image.url)

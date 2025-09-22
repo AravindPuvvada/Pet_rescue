@@ -103,6 +103,7 @@ import RescuedPetsPage from "../pages/RescuedPetsPage";
 import ProfilePage from "../pages/ProfilePage";
 import { apiService } from "../../services/api";
 import LostPetsPage from "../pages/LostPetsPage";
+import AdoptionPage from '../pages/PetAdoptionPage';
 
 interface User {
   id: number;
@@ -152,6 +153,8 @@ const MainPage: React.FC<MainPageProps> = ({ onLogout }) => {
         return <ProfilePage onLogout={onLogout} />;
       case "lost-pets":
         return <LostPetsPage />;
+      case 'adoption-pets':
+        return <AdoptionPage />;
       default:
         return <Dashboard />;
     }

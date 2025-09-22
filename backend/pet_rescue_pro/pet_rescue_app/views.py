@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.hashers import make_password, check_password
@@ -12,7 +13,7 @@ from .serializers import (
     PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer,
       PetReportListSerializer, PetAdoptionListSerializer, AdminApprovalSerializer, UserPetReportSerializer,
         UserAdoptionRequestSerializer, AdminUserSerializer,AdminPetReportSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
-        RegisterSerializer, VerifyRegisterSerializer
+        RegisterSerializer, VerifyRegisterSerializer,UserAdoptionDetailSerializer
 )
 from .utils import send_otp_email, verify_otp
 
@@ -223,12 +224,24 @@ class PetAdoptionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        user = self.request.user if self.request.user.is_authenticated else None
-        serializer.save(created_by=user, modified_by=user)
+        """
+        Assigns the currently logged-in user as the requestor for the adoption
+        and populates the audit fields.
+        """
+        user = self.request.user
+        # ✅ SAVE THE USER TO ALL THREE FIELDS
+        serializer.save(
+            requestor=user, 
+            created_by=user, 
+            modified_by=user
+        )
 
     def perform_update(self, serializer):
-        user = self.request.user if self.request.user.is_authenticated else None
-        serializer.save(modified_by=user)
+        """
+        Updates the 'modified_by' field when the record is changed.
+        """
+        # ✅ UPDATE THE 'modified_by' FIELD ON EVERY UPDATE
+        serializer.save(modified_by=self.request.user)
 
 
 # -------------------------
@@ -1102,3 +1115,24 @@ class UserFoundPetsAPIView(APIView):
         
         # We'll use the same response key 'found_pets' for consistency
         return Response({"found_pets": data}, status=status.HTTP_200_OK)
+    
+class AdoptionPetsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        # Fetch all PetAdoption entries (you can filter by status if needed)
+        adoption_requests = PetAdoption.objects.all()
+        serializer = PetAdoptionSerializer(adoption_requests, many=True, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserPetAdoptionsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user_adoptions = PetAdoption.objects.filter(requestor=request.user).order_by("-created_date")
+
+        # ✅ USE THE NEW, DETAILED SERIALIZER
+        serializer = UserAdoptionDetailSerializer(user_adoptions, many=True, context={'request': request})
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)

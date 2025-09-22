@@ -133,15 +133,36 @@ class PetMedicalHistorySerializer(serializers.ModelSerializer):
 
 # ---------------- Pet Adoption ----------------
 class PetAdoptionSerializer(serializers.ModelSerializer):
+    # This field is for reading data (GET requests)
     pet = PetSerializer(read_only=True)
+    
+    # This field is for writing data (POST requests)
+    pet_id = serializers.PrimaryKeyRelatedField(
+        queryset=Pet.objects.all(), 
+        source='pet', 
+        write_only=True
+    )
+    
+    # This field is for reading the user who made the request
     requestor = ProfileSerializer(read_only=True)
+    
+    # ✅ ADD THESE TWO LINES TO EXPOSE THE AUDIT FIELDS
     created_by = ProfileSerializer(read_only=True)
     modified_by = ProfileSerializer(read_only=True)
+
     class Meta:
         model = PetAdoption
         fields = [
-            "id", "pet", "requestor", "message", "status",
-            "created_date", "modified_date", "created_by", "modified_by"
+            "id", 
+            "pet",          # For reading
+            "pet_id",       # For writing
+            "requestor", 
+            "message", 
+            "status",
+            "created_date", 
+            "modified_date",
+            "created_by",   # ✅ ADD THIS
+            "modified_by"   # ✅ ADD THIS
         ]
 
 # ---------------- Notification ----------------
@@ -305,3 +326,63 @@ class AdminPetReportSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.image.url)
         return None
+
+class UserAdoptionDetailSerializer(serializers.ModelSerializer):
+    """
+    Custom serializer for a user's adoption requests.
+    It fetches the pet's image from its most recent report
+    and includes its medical history.
+    """
+    # This will hold our custom-structured pet data
+    pet = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PetAdoption
+        fields = [
+            "id",             # The adoption request ID
+            "status",         # The adoption status
+            "message", # The user's message
+            "created_date",       
+            "pet"             # The nested pet details
+        ]
+
+    def get_pet(self, adoption_obj):
+        # Get the related Pet instance from the adoption object
+        pet = adoption_obj.pet
+
+        # Find the most recent report associated with this pet
+        report = PetReport.objects.filter(pet=pet).order_by('-created_date').first()
+
+        # Find the medical history for this pet
+        medical_history = PetMedicalHistory.objects.filter(pet=pet).first()
+
+        # Get the request context to build full URLs
+        request = self.context.get('request')
+        image_url = None
+
+        # ✅ Get the image URL from the REPORT, not the pet
+        if report and report.image and hasattr(report.image, 'url'):
+            image_url = request.build_absolute_uri(report.image.url)
+
+        # Serialize medical data if it exists
+        medical_data = PetMedicalHistorySerializer(medical_history).data if medical_history else None
+
+        # Construct the final pet object for the API response
+        return {
+            'id': pet.id,
+            'name': pet.name,
+            'pet_type': str(pet.pet_type) if pet.pet_type else None,
+            'gender': pet.gender,
+            'breed': pet.breed,
+            'color': pet.color,
+            'age': pet.age,
+            'weight': pet.weight,
+            'description': pet.description,
+            'city': pet.city,          # ✅ ADD city
+            'state': pet.state,        # ✅ ADD state
+            'is_diseased': pet.is_diseased,
+            'is_vaccinated': pet.is_vaccinated,
+            'modified_date': pet.modified_date,
+            'image': image_url,  # The image URL from the report
+            'medical_history': medical_data  # The nested medical history
+        }
