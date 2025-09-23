@@ -1,14 +1,4 @@
-import React from "react";
-import {
-  LayoutDashboard,
-  Heart,
-  User,
-  PawPrint,
-  Dog,
-  Bird,
-  Gift,
-  MessageSquare,
-} from "lucide-react";
+import React from 'react';
 
 interface SidebarProps {
   activeSection: string;
@@ -18,76 +8,139 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
   const menuItems = [
     {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
+      id: 'dashboard',
+      label: 'Dashboard',
+      emoji: '🏠'
     },
     {
-      id: "lost-pets",
-      label: "Lost Pets",
-      icon: Dog, // 🐶
+      id: 'lost-pets',
+      label: 'Lost Pets',
+      emoji: '🔍'
     },
     {
-      id: "rescued-pets",
-      label: "Rescued Pets",
-      icon: Heart,
+      id: 'rescued-pets',
+      label: 'Rescued Pets',
+      emoji: '🐕‍🦺'
     },
     {
       id: "adoption-pets",
       label: "Adopt Pet",
-      icon: PawPrint, // 🐱
+      emoji: '🐱', 
     },
     {
-      id: "recent-pets",
-      label: "Recent Pets",
-      icon: Bird, // 🐦
+      id: 'recent-pets',
+      label: 'Recent Pets',
+      emoji: '🐾'
     },
     {
       id: "reward-points",
       label: "Reward Points",
-      icon: Gift, // 🎁
+      emoji: '🎁', 
     },
     {
       id: "create-feedback", // ✅ New menu item for feedback
       label: "Create Feedback", // ✅ Display label
-      icon: MessageSquare, // ✅ Feedback icon
-    },
-    {
-      id: "profile",
-      label: "Profile",
-      icon: User,
+      emoji: '💬', 
     },
   ];
 
+  const profileItem = {
+    id: 'profile',
+    label: 'Profile',
+    emoji: '👤'
+  };
+
   return (
-    <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white/80 backdrop-blur-md shadow-2xl border-r border-white/20 z-40 mt-10">
+    <div className="fixed left-0 top-16 mt-6 h-[calc(100vh-4rem)] w-64 bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-md shadow-2xl border-r border-light-secondary/20 dark:border-dark-secondary/20 z-40 theme-transition flex flex-col justify-between">
       <div className="p-6">
         <nav className="space-y-3">
           {menuItems.map((item) => {
-            const Icon = item.icon;
             const isActive = activeSection === item.id;
             
             return (
               <button
                 key={item.id}
                 onClick={() => onSectionChange(item.id)}
-                className={`w-full flex items-center space-x-4 px-6 py-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
+                className={`w-full flex items-center space-x-4 px-6 py-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 group ${
                   isActive
-                    ? 'bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 text-white shadow-xl shadow-orange-200'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 hover:text-gray-900 hover:shadow-lg'
+                    ? 'bg-light-accent dark:bg-dark-accent text-white shadow-xl'
+                    : 'text-light-text dark:text-dark-secondary hover:bg-light-primary dark:hover:bg-dark-background hover:shadow-lg'
                 }`}
               >
-                <Icon
-  className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-500'} transition-colors duration-300`}
-/>
+                <span className="text-2xl group-hover:scale-110 transition-transform duration-300">
+                  {item.emoji}
+                </span>
                 <span className="font-semibold text-sm">{item.label}</span>
               </button>
             );
           })}
         </nav>
       </div>
+
+      <div className="p-6">
+        <button
+          onClick={() => onSectionChange(profileItem.id)}
+          className={`w-full flex items-center space-x-4 px-6 py-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 group ${
+            activeSection === profileItem.id
+              ? 'bg-light-accent dark:bg-dark-accent text-white shadow-xl'
+              : 'text-light-text dark:text-dark-secondary hover:bg-light-primary dark:hover:bg-dark-background hover:shadow-lg'
+          }`}
+        >
+          <span className="text-2xl group-hover:scale-110 transition-transform duration-300">
+            {profileItem.emoji}
+          </span>
+          <span className="font-semibold text-sm">{profileItem.label}</span>
+        </button>
+      </div>
     </div>
   );
 };
 
 export default Sidebar;
+
+
+
+
+// const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
+//   const menuItems = [
+//     {
+//       id: "dashboard",
+//       label: "Dashboard",
+//       icon: LayoutDashboard,
+//     },
+//     {
+//       id: "lost-pets",
+//       label: "Lost Pets",
+//       icon: Dog, // 🐶
+//     },
+//     {
+//       id: "rescued-pets",
+//       label: "Rescued Pets",
+//       icon: Heart,
+//     },
+//     {
+//       id: "adoption-pets",
+//       label: "Adopt Pet",
+//       icon: PawPrint, // 🐱
+//     },
+//     {
+//       id: "recent-pets",
+//       label: "Recent Pets",
+//       icon: Bird, // 🐦
+//     },
+//     {
+//       id: "reward-points",
+//       label: "Reward Points",
+//       icon: Gift, // 🎁
+//     },
+//     {
+//       id: "create-feedback", // ✅ New menu item for feedback
+//       label: "Create Feedback", // ✅ Display label
+//       icon: MessageSquare, 
+//     },
+//     {
+//       id: "profile",
+//       label: "Profile",
+//       icon: User,
+//     },
+//   ];

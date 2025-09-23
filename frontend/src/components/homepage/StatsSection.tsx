@@ -43,7 +43,7 @@ const StatsSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="py-20 bg-gradient-to-r from-orange-500 to-pink-500">
+    <section className="py-20 bg-light-accent dark:bg-dark-accent theme-transition">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -59,28 +59,36 @@ const StatsSection: React.FC = () => {
             <div className="text-5xl md:text-6xl font-bold text-white mb-2">
               {counters.petsReunited}+
             </div>
-            <div className="text-white/90 text-lg font-medium">Pets Reunited</div>
+            <div className="text-white/90 text-lg font-medium flex items-center justify-center">
+              <span className="mr-2">🐕</span>Pets Reunited
+            </div>
           </div>
           
           <div className="text-center">
             <div className="text-5xl md:text-6xl font-bold text-white mb-2">
               {counters.activeCases}
             </div>
-            <div className="text-white/90 text-lg font-medium">Active Cases</div>
+            <div className="text-white/90 text-lg font-medium flex items-center justify-center">
+              <span className="mr-2">📋</span>Active Cases
+            </div>
           </div>
           
           <div className="text-center">
             <div className="text-5xl md:text-6xl font-bold text-white mb-2">
               {counters.volunteers}
             </div>
-            <div className="text-white/90 text-lg font-medium">Volunteers</div>
+            <div className="text-white/90 text-lg font-medium flex items-center justify-center">
+              <span className="mr-2">👥</span>Volunteers
+            </div>
           </div>
           
           <div className="text-center">
             <div className="text-5xl md:text-6xl font-bold text-white mb-2">
               {counters.successRate}%
             </div>
-            <div className="text-white/90 text-lg font-medium">Success Rate</div>
+            <div className="text-white/90 text-lg font-medium flex items-center justify-center">
+              <span className="mr-2">⭐</span>Success Rate
+            </div>
           </div>
         </div>
       </div>

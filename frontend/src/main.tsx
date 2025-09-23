@@ -2,12 +2,12 @@ import './index.css';
 import App from './App';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import { ThemeProvider } from './context/ThemeContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId="11733224331-1e0gicsuvhsis39dhbd1ov081bd93ftm.apps.googleusercontent.com">
+    <ThemeProvider>
       <App />
-    </GoogleOAuthProvider>
+    </ThemeProvider>
   </StrictMode>
 );

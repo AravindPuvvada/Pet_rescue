@@ -5,7 +5,6 @@ import {
   EyeOff,
   Mail,
   Lock,
-  Heart,
   ArrowRight,
   CheckCircle,
   Phone,
@@ -13,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import ThemeToggle from '../ThemeToggle';
 
 const API_BASE_URL = "http://127.0.0.1:8000/api"; // change if different
 
@@ -184,19 +184,23 @@ const Register: React.FC = () => {
 
 
   return (
-    <motion.div
-  initial={{ opacity: 0, scale: 0.95 }}
-  animate={{ opacity: 1, scale: 1 }}
-  transition={{ duration: 0.8, ease: "easeOut" }}
-  className="flex items-center justify-center min-h-screen bg-gray-50 px-6"
->
- <div
-  className="w-[92%] max-w-5xl scale-95 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 flex overflow-hidden"
->
+    <div className="min-h-screen bg-light-primary dark:bg-dark-background flex items-center justify-center p-4 theme-transition">
+      {/* Theme Toggle */}
+      <div className="fixed top-6 right-6 z-50">
+        <ThemeToggle variant="auth" />
+      </div>
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="w-full max-w-6xl bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-light-secondary/20 dark:border-dark-secondary/20 overflow-hidden"
+      >
+        <div className="flex flex-col lg:flex-row min-h-[700px]">
 
           {/* Left Side - Image Carousel */}
-          <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden min-w-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-sky-500/20 z-10"></div>
+          <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-light-accent dark:bg-dark-accent">
+            <div className="absolute inset-0 bg-black/10 dark:bg-black/20 z-10"></div>
             
             <AnimatePresence mode="wait">
               <motion.div
@@ -208,9 +212,9 @@ const Register: React.FC = () => {
                 className="absolute inset-0"
               >
                 <img
-                  src={petImages[currentImageIndex].url}
+                  src="https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=800"
                   alt="Pet reunion story"
-                  className="w-full h-full object-cover"  /* removed scale-95 to avoid overflow */
+                  className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
               </motion.div>
@@ -226,11 +230,11 @@ const Register: React.FC = () => {
                 className="backdrop-blur-md bg-white/10 rounded-xl p-4 border border-white/20"
               >
                 <div className="flex items-center mb-3">
-                  <Heart className="w-4 h-4 text-orange-400 mr-2" />
+                  <span className="text-2xl mr-2">🐕</span>
                   <span className="text-white font-semibold text-sm">Success Story</span>
                 </div>
                 <p className="text-white text-sm font-medium leading-relaxed">
-                  {petImages[currentImageIndex].caption}
+                  Max reunited with his family after 5 days
                 </p>
               </motion.div>
             </div>
@@ -252,23 +256,23 @@ const Register: React.FC = () => {
           </div>
 
           {/* Right Side - Registration Form */}
-          <div className="w-full lg:w-1/2 p-4 lg:p-8 flex flex-col justify-center min-w-0">
+          <div className="w-full lg:w-1/2 p-6 lg:p-10 flex flex-col justify-center">
             {/* Header */}
             <div className="text-center mb-6">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="w-12 h-12 bg-gradient-to-r from-orange-500 to-sky-500 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                className="w-16 h-16 bg-light-accent dark:bg-dark-accent rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl"
               >
-                <Heart className="w-6 h-6 text-white" />
+                <span className="text-3xl">🐾</span>
               </motion.div>
               
               <motion.h1
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
-                className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2"
+                className="text-3xl font-bold text-light-text dark:text-dark-secondary mb-2"
               >
                 Create Your Account
               </motion.h1>
@@ -277,7 +281,7 @@ const Register: React.FC = () => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
-                className="text-gray-600 text-base"
+                className="text-light-text/70 dark:text-dark-neutral"
               >
                 Join PetRescue and help pets find their way home
               </motion.p>
@@ -292,8 +296,8 @@ const Register: React.FC = () => {
                   exit={{ opacity: 0, y: -10 }}
                   className={`mb-4 p-3 rounded-lg text-center font-medium backdrop-blur-sm border text-sm ${
   message === "Verification code sent! Please verify your account."
-    ? 'bg-green-50/80 text-green-700 border-green-200'
-    : 'bg-red-50/80 text-red-700 border-red-200'
+    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700'
+    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700'
 }`}
 
                 >
@@ -312,24 +316,24 @@ const Register: React.FC = () => {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.6 }}
-              className="backdrop-blur-xl bg-white/70 rounded-2xl p-6 shadow-2xl border border-white/20 max-h-[450px] overflow-y-auto"
+              className="bg-light-neutral/70 dark:bg-dark-primary/70 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-light-secondary/20 dark:border-dark-secondary/20 max-h-[500px] overflow-y-auto"
             >
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Username and Email - 2 columns on desktop */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-700">
+                    <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
                       Username
                     </label>
                     <div className="relative group">
-                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                       <input
                         type="text"
                         name="username"
                         value={formData.username}
                         onChange={handleInputChange}
-                        className={`w-full pl-10 pr-3 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 placeholder-gray-400 text-sm ${
-                          errors.username ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-11 pr-4 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary placeholder-light-text/50 dark:placeholder-dark-neutral ${
+                          errors.username ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                         }`}
                         placeholder="Choose username"
                       />
@@ -338,7 +342,7 @@ const Register: React.FC = () => {
                       <motion.p
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-600 text-xs"
+                        className="text-red-600 dark:text-red-400 text-sm mt-1"
                       >
                         {errors.username}
                       </motion.p>
@@ -346,18 +350,18 @@ const Register: React.FC = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-700">
+                    <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
                       Email Address
                     </label>
                     <div className="relative group">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                       <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className={`w-full pl-10 pr-3 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 placeholder-gray-400 text-sm ${
-                          errors.email ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-11 pr-4 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary placeholder-light-text/50 dark:placeholder-dark-neutral ${
+                          errors.email ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                         }`}
                         placeholder="Enter email address"
                       />
@@ -366,7 +370,7 @@ const Register: React.FC = () => {
                       <motion.p
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-600 text-xs"
+                        className="text-red-600 dark:text-red-400 text-sm mt-1"
                       >
                         {errors.email}
                       </motion.p>
@@ -574,7 +578,7 @@ const Register: React.FC = () => {
                   disabled={loading}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full bg-gradient-to-r from-orange-500 to-sky-500 text-white py-3 px-4 rounded-xl font-semibold text-base hover:from-orange-600 hover:to-sky-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                  className="w-full bg-light-accent dark:bg-dark-accent text-white py-3 px-6 rounded-xl font-semibold text-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-light-accent/50 dark:focus:ring-dark-accent/50 transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -595,19 +599,20 @@ const Register: React.FC = () => {
               transition={{ delay: 0.7, duration: 0.6 }}
               className="text-center mt-4"
             >
-              <p className="text-gray-600 text-sm">
+              <p className="text-light-text/70 dark:text-dark-neutral text-sm mb-3">
                 Already have an account?{' '}
                 <Link
                   to="/login"
-                  className="font-semibold text-orange-500 hover:text-orange-600 transition-colors text-sm"
+                  className="font-semibold text-light-accent dark:text-dark-accent hover:opacity-80 transition-colors underline underline-offset-4"
                 >
                   Sign In
                 </Link>
               </p>
             </motion.div>
           </div>
-              </div>
-    </motion.div>
+        </div>
+      </motion.div>
+    </div>
   );
 };
 

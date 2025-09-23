@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Heart,
   User,
   Settings,
   LogOut,
   ChevronDown,
   Bell,
 } from "lucide-react";
+import ThemeToggle from '../ThemeToggle';
 
 interface NavbarProps {
   user?: {
@@ -128,30 +128,47 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
   return (
     <>
-      <nav className="bg-white/80 backdrop-blur-md shadow-lg border-b border-white/20 fixed top-0 left-0 right-0 z-50">
+      <nav className="bg-light-neutral/80 dark:bg-dark-primary/80 backdrop-blur-md shadow-lg border-b border-light-secondary/20 dark:border-dark-secondary/20 fixed top-0 left-0 right-0 z-50 theme-transition">
         <div className="px-6 py-4">
           <div className="flex justify-between items-center">
             {/* Left side - Logo */}
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
-                <Heart className="w-7 h-7 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-r from-light-accent via-light-secondary to-light-primary dark:from-dark-accent dark:via-dark-secondary dark:to-dark-primary rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 64 64"
+                  className="w-7 h-7 text-white"
+                  fill="currentColor"
+                >
+                  {/* Paw print icon */}
+                  <circle cx="32" cy="48" r="8" />
+                  <circle cx="16" cy="32" r="6" />
+                  <circle cx="48" cy="32" r="6" />
+                  <circle cx="24" cy="16" r="5" />
+                  <circle cx="40" cy="16" r="5" />
+                </svg>
               </div>
-              <span className="text-3xl font-bold bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
-                PetRescue Pro
+
+              
+              <span className="text-3xl font-bold text-light-text dark:text-dark-secondary">
+                Furry Finder
               </span>
             </div>
 
             {/* Right side */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {/* Theme Toggle */}
+              <ThemeToggle variant="navbar" />
+              
               {/* Notification Icon */}
               <div className="relative" ref={notifRef}>
                 <button
                   onClick={handleNotificationClick}
-                  className="relative p-3 rounded-xl hover:bg-white/50 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="relative p-3 rounded-xl hover:bg-light-neutral/50 dark:hover:bg-dark-primary/50 transition-all duration-300 backdrop-blur-sm border border-light-secondary/20 dark:border-dark-secondary/20 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
-                  <Bell className="w-5 h-5 text-gray-600" />
+                  <Bell className="w-5 h-5 text-light-text dark:text-dark-secondary" />
                   {unreadCount > 0 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-light-accent dark:bg-dark-accent rounded-full flex items-center justify-center shadow-lg">
                       <span className="text-xs font-bold text-white">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
@@ -161,26 +178,26 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
                 {/* Notifications Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-3 w-80 max-h-96 overflow-y-auto bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 py-3 z-50 animate-in slide-in-from-top">
-                    <h3 className="px-4 py-2 font-semibold text-gray-800 border-b border-gray-100">
+                  <div className="absolute right-0 mt-3 w-80 max-h-96 overflow-y-auto bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-md rounded-2xl shadow-2xl border border-light-secondary/20 dark:border-dark-secondary/20 py-3 z-50 animate-in slide-in-from-top">
+                    <h3 className="px-4 py-2 font-semibold text-light-text dark:text-dark-secondary border-b border-light-secondary/20 dark:border-dark-secondary/20">
                       Notifications
                     </h3>
                     {loading ? (
-                      <p className="px-4 py-2 text-sm text-gray-500">Loading...</p>
+                      <p className="px-4 py-2 text-sm text-light-text/70 dark:text-dark-neutral">Loading...</p>
                     ) : notifications.length === 0 ? (
-                      <p className="px-4 py-2 text-sm text-gray-500">
+                      <p className="px-4 py-2 text-sm text-light-text/70 dark:text-dark-neutral">
                         No notifications
                       </p>
                     ) : (
                       notifications.map((n) => (
                         <div
                           key={n.id}
-                          className={`px-4 py-3 text-sm border-b border-gray-100 ${
-                            n.is_read ? "bg-white" : "bg-blue-50"
+                          className={`px-4 py-3 text-sm border-b border-light-secondary/10 dark:border-dark-secondary/10 ${
+                            n.is_read ? "bg-transparent" : "bg-light-accent/10 dark:bg-dark-accent/10"
                           }`}
                         >
-                          <p className="text-gray-800">{n.content}</p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-light-text dark:text-dark-secondary">{n.content}</p>
+                          <p className="text-xs text-light-text/50 dark:text-dark-neutral mt-1">
                             {new Date(n.created_at).toLocaleString()}
                           </p>
                         </div>
@@ -194,9 +211,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center space-x-4 px-5 py-3 rounded-xl hover:bg-white/50 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl"
+                  className="flex items-center space-x-4 px-5 py-3 rounded-xl hover:bg-light-neutral/50 dark:hover:bg-dark-primary/50 transition-all duration-300 backdrop-blur-sm border border-light-secondary/20 dark:border-dark-secondary/20 shadow-lg hover:shadow-xl"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="w-10 h-10 bg-gradient-to-r from-light-secondary to-light-accent dark:from-dark-secondary dark:to-dark-accent rounded-xl flex items-center justify-center shadow-lg">
                     {user?.profile_image ? (
                       <img
                         src={user.profile_image}
@@ -208,39 +225,39 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                     )}
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-bold text-gray-900">
+                    <p className="text-sm font-bold text-light-text dark:text-dark-secondary">
                       {user?.username || "User"}
                     </p>
-                    <p className="text-xs text-gray-500 font-medium">
+                    <p className="text-xs text-light-text/70 dark:text-dark-neutral font-medium">
                       {user?.email}
                     </p>
                   </div>
                   <ChevronDown
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
+                    className={`w-4 h-4 text-light-text/50 dark:text-dark-neutral transition-transform duration-300 ${
                       showDropdown ? "rotate-180" : ""
                     }`}
                   />
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-3 w-72 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 py-3 z-50 animate-in slide-in-from-top">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                      <p className="text-sm font-bold text-gray-900">
+                  <div className="absolute right-0 mt-3 w-72 bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-md rounded-2xl shadow-2xl border border-light-secondary/20 dark:border-dark-secondary/20 py-3 z-50 animate-in slide-in-from-top">
+                    <div className="px-6 py-4 border-b border-light-secondary/20 dark:border-dark-secondary/20">
+                      <p className="text-sm font-bold text-light-text dark:text-dark-secondary">
                         {user?.username}
                       </p>
-                      <p className="text-xs text-gray-500 font-medium">
+                      <p className="text-xs text-light-text/70 dark:text-dark-neutral font-medium">
                         {user?.email}
                       </p>
                     </div>
 
-                    <button className="w-full px-6 py-3 text-left text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-300 flex items-center space-x-3 font-medium">
-                      <Settings className="w-4 h-4 text-blue-500" />
+                    <button className="w-full px-6 py-3 text-left text-sm text-light-text dark:text-dark-secondary hover:bg-light-accent/10 dark:hover:bg-dark-accent/10 transition-all duration-300 flex items-center space-x-3 font-medium">
+                      <Settings className="w-4 h-4 text-light-accent dark:text-dark-accent" />
                       <span>Edit Profile</span>
                     </button>
 
                     <button
                       onClick={() => setShowLogoutModal(true)}
-                      className="w-full px-6 py-3 text-left text-sm text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 transition-all duration-300 flex items-center space-x-3 font-medium"
+                      className="w-full px-6 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300 flex items-center space-x-3 font-medium"
                     >
                       <LogOut className="w-4 h-4 text-red-500" />
                       <span>Logout</span>
@@ -255,24 +272,24 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl border border-white/20 animate-in slide-in-from-bottom">
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 theme-transition">
+          <div className="bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-md rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl border border-light-secondary/20 dark:border-dark-secondary/20 animate-in slide-in-from-bottom">
+            <h3 className="text-xl font-bold text-light-text dark:text-dark-secondary mb-3">
               Confirm Logout
             </h3>
-            <p className="text-gray-600 mb-8 leading-relaxed">
+            <p className="text-light-text/70 dark:text-dark-neutral mb-8 leading-relaxed">
               Are you sure you want to logout?
             </p>
             <div className="flex space-x-4">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="flex-1 px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-300 font-semibold"
+                className="flex-1 px-6 py-3 text-light-text dark:text-dark-secondary bg-light-primary dark:bg-dark-background rounded-xl hover:opacity-80 transition-all duration-300 font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 px-6 py-3 text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="flex-1 px-6 py-3 text-white bg-red-500 dark:bg-red-600 rounded-xl hover:opacity-90 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 Logout
               </button>
@@ -285,4 +302,3 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 };
 
 export default Navbar;
-

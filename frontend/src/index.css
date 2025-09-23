@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme-aware CSS custom properties */
+:root {
+  /* Light mode colors */
+  --color-bg-primary: #C4D8E2;
+  --color-bg-secondary: #E9DED1;
+  --color-text-primary: #4A3933;
+  --color-text-secondary: #3B5C67;
+  --color-accent: #D7742E;
+}
+
+:root.dark {
+  /* Dark mode colors */
+  --color-bg-primary: #2B1E1A;
+  --color-bg-secondary: #2A4048;
+  --color-text-primary: #DCE9F0;
+  --color-text-secondary: #BFAFA2;
+  --color-accent: #C36220;
+}
+
+/* Global styles */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
 /* Hide scrollbar for Chrome, Safari and Edge */
 ::-webkit-scrollbar {
   display: none;
@@ -12,4 +42,42 @@ html, body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;     /* Firefox */
   overflow-x: hidden;        /* Prevent horizontal scroll globally */
+}
+
+/* Custom scrollbar for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #2A4048;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #BFAFA2;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #DCE9F0;
+}
+
+/* Theme transition animations */
+.theme-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom focus styles for accessibility */
+.focus-visible:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Gradient backgrounds for theme consistency */
+.gradient-light {
+  background: linear-gradient(135deg, #C4D8E2 0%, #E9DED1 100%);
+}
+
+.gradient-dark {
+  background: linear-gradient(135deg, #2B1E1A 0%, #2A4048 100%);
 }
