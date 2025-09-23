@@ -9,8 +9,8 @@ import AdminLostRequests from "./AdminLostRequests";
 import AdminFoundRequests from "./AdminFoundRequests";
 import AdminAdoptRequests from "./AdminAdoptRequests";
 import AdminNotifications from "./AdminNotifications";
-import { apiService } from "../../services/api";
 import RewardsPage from "./RewardsPage";
+import { apiService } from "../../services/api";
 
 interface User {
   id: number;
@@ -23,14 +23,32 @@ const AdminDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState("overview");
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<"light" | "dark">("light"); // theme state
   const navigate = useNavigate();
 
-  // ✅ FIX: handleLogout inside component so it has access to navigate
+  // Toggle theme
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
+
+  // Persist theme in localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark";
+    if (savedTheme) setTheme(savedTheme);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
+  // Logout
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login", { replace: true });
   };
 
+  // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -42,12 +60,11 @@ const AdminDashboard: React.FC = () => {
         setUser(userData);
       } catch (error) {
         console.error("Error fetching user profile:", error);
-        handleLogout(); // force logout if profile fetch fails
+        handleLogout();
       } finally {
         setLoading(false);
       }
     };
-
     fetchUserProfile();
   }, [navigate]);
 
@@ -76,16 +93,29 @@ const AdminDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div
+        className={`min-h-screen flex items-center justify-center ${
+          theme === "light" ? "bg-[#E8E0D3]" : "bg-gray-900"
+        }`}
+      >
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className={`min-h-screen ${
+        theme === "light" ? "bg-[#E8E0D3] text-[#5B4438]" : "bg-gray-900 text-gray-100"
+      }`}
+    >
       {/* Top Navbar */}
-      <AdminNavbar user={user} onLogout={handleLogout} />
+      <AdminNavbar
+        user={user}
+        onLogout={handleLogout}
+        onToggleTheme={toggleTheme}
+        theme={theme}
+      />
 
       {/* Main Layout */}
       <div className="flex">
@@ -93,10 +123,17 @@ const AdminDashboard: React.FC = () => {
         <AdminSidebar
           activeSection={activeSection}
           onSectionChange={setActiveSection}
+          theme={theme}
         />
 
         {/* Main Content */}
-        <div className="flex-1 ml-64 mt-16 p-6">{renderContent()}</div>
+        <div
+          className={`flex-1 ml-64 mt-16 p-6 ${
+            theme === "light" ? "text-[#5B4438]" : "text-gray-100"
+          }`}
+        >
+          {renderContent()}
+        </div>
       </div>
     </div>
   );
@@ -117,6 +154,7 @@ export default AdminDashboard;
 // import AdminAdoptRequests from "./AdminAdoptRequests";
 // import AdminNotifications from "./AdminNotifications";
 // import { apiService } from "../../services/api";
+// import RewardsPage from "./RewardsPage";
 
 // interface User {
 //   id: number;
@@ -125,16 +163,36 @@ export default AdminDashboard;
 //   is_superuser: boolean;
 // }
 
-// interface AdminDashboardProps {
-//   onLogout: () => void;
-// }
-// // Parent component
-
-// const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+// const AdminDashboard: React.FC = () => {
 //   const [activeSection, setActiveSection] = useState("overview");
 //   const [user, setUser] = useState<User | null>(null);
 //   const [loading, setLoading] = useState(true);
+//   const [theme, setTheme] = useState<"light" | "dark">("light"); // ✅ theme state
 //   const navigate = useNavigate();
+
+//   // ✅ Toggle theme
+//   const toggleTheme = () => {
+//     setTheme((prev) => (prev === "light" ? "dark" : "light"));
+//   };
+
+//   // ✅ Persist theme in localStorage
+//   useEffect(() => {
+//     const savedTheme = localStorage.getItem("theme") as "light" | "dark";
+//     if (savedTheme) {
+//       setTheme(savedTheme);
+//     }
+//   }, []);
+
+//   useEffect(() => {
+//     localStorage.setItem("theme", theme);
+//     document.documentElement.classList.toggle("dark", theme === "dark");
+//   }, [theme]);
+
+//   // ✅ Logout
+//   const handleLogout = () => {
+//     localStorage.clear();
+//     navigate("/login", { replace: true });
+//   };
 
 //   useEffect(() => {
 //     const fetchUserProfile = async () => {
@@ -147,15 +205,14 @@ export default AdminDashboard;
 //         setUser(userData);
 //       } catch (error) {
 //         console.error("Error fetching user profile:", error);
-//         onLogout(); // ✅ use the passed down logout
-//         navigate("/login");
+//         handleLogout(); // force logout if profile fetch fails
 //       } finally {
 //         setLoading(false);
 //       }
 //     };
 
 //     fetchUserProfile();
-//   }, [onLogout, navigate]);
+//   }, [navigate]);
 
 //   const renderContent = () => {
 //     switch (activeSection) {
@@ -173,6 +230,8 @@ export default AdminDashboard;
 //         return <AdminAdoptRequests />;
 //       case "notifications":
 //         return <AdminNotifications />;
+//       case "rewards":
+//         return <RewardsPage />;
 //       default:
 //         return <AdminOverview />;
 //     }
@@ -180,16 +239,16 @@ export default AdminDashboard;
 
 //   if (loading) {
 //     return (
-//       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+//       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
 //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
 //       </div>
 //     );
 //   }
 
 //   return (
-//     <div className="min-h-screen bg-gray-50">
+//     <div className={`min-h-screen ${theme === "dark" ? "dark bg-gray-900" : "bg-gray-50"}`}>
 //       {/* Top Navbar */}
-//       <AdminNavbar user={user} onLogout={onLogout} />
+//       <AdminNavbar user={user} onLogout={handleLogout} onToggleTheme={toggleTheme} theme={theme} />
 
 //       {/* Main Layout */}
 //       <div className="flex">
@@ -197,13 +256,17 @@ export default AdminDashboard;
 //         <AdminSidebar
 //           activeSection={activeSection}
 //           onSectionChange={setActiveSection}
+//           theme={theme}
 //         />
 
 //         {/* Main Content */}
-//         <div className="flex-1 ml-64 mt-16 p-6">{renderContent()}</div>
+//         <div className="flex-1 ml-64 mt-16 p-6 text-gray-900 dark:text-gray-100">
+//           {renderContent()}
+//         </div>
 //       </div>
 //     </div>
 //   );
 // };
 
 // export default AdminDashboard;
+

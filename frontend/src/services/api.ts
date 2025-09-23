@@ -119,7 +119,7 @@ export interface PetReport {
   pet: Pet;
   user: User;
   pet_status: 'Lost' | 'Found' | 'Adopted';
-  report_status: 'Pending' | 'Accepted' | 'Resolved' | 'Reunited';
+  report_status: 'Pending' | 'Accepted'| 'Rejected' | 'Resolved' | 'Reunited';
   image?: string;
   is_resolved: boolean;
   created_date: string;
@@ -240,7 +240,7 @@ export interface AdminPetReport {
   user: string; // This is the username string
   image_url?: string;
   pet_status: 'Lost' | 'Found' | 'Adopted';
-  report_status: 'Pending' | 'Accepted' | 'Resolved' | 'Reunited';
+  report_status: 'Pending' | 'Accepted'| 'Rejected' | 'Resolved' | 'Reunited';
   created_date: string;
   modified_date: string; // Now included from the serializer
 }

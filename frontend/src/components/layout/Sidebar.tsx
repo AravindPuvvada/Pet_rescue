@@ -1,5 +1,13 @@
-import React from 'react';
-import { LayoutDashboard, Heart, User, PawPrint } from 'lucide-react';
+import React from "react";
+import {
+  LayoutDashboard,
+  Heart,
+  User,
+  PawPrint,
+  Dog,
+  Bird,
+  Gift,
+} from "lucide-react";
 
 interface SidebarProps {
   activeSection: string;
@@ -9,39 +17,39 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
   const menuItems = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
+      id: "dashboard",
+      label: "Dashboard",
       icon: LayoutDashboard,
     },
     {
-      id: 'rescued-pets',
-      label: 'Rescued Pets',
+      id: "lost-pets",
+      label: "Lost Pets",
+      icon: Dog, // 🐶
+    },
+    {
+      id: "rescued-pets",
+      label: "Rescued Pets",
       icon: Heart,
     },
     {
-      id: 'lost-pets',
-      label: 'Lost Pets',
-      icon: PawPrint,
+      id: "adoption-pets",
+      label: "Adopt Pet",
+      icon: PawPrint, // 🐱
     },
     {
-      id: 'adoption-pets',
-      label: 'Adopt Pet',
-      icon: PawPrint,
+      id: "recent-pets",
+      label: "Recent Pets",
+      icon: Bird, // 🐦
     },
     {
-      id: 'profile',
-      label: 'Profile',
+      id: "reward-points",
+      label: "Reward Points",
+      icon: Gift, // 🎁
+    },
+    {
+      id: "profile",
+      label: "Profile",
       icon: User,
-    },
-    {
-      id: 'recent-pets',
-      label: 'Recent Pets',
-      icon: PawPrint,
-    },
-    {
-      id: 'reward-points',
-      label: 'Reward Points',
-      icon: PawPrint,
     },
   ];
 

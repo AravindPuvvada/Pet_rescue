@@ -111,7 +111,7 @@ class PetMedicalHistory(BaseModel):
 
 class PetReport(BaseModel):
     PET_STATUS_CHOICES = [("Lost", "Lost"), ("Found", "Found"), ("Adopted", "Adopted")]
-    REPORT_STATUS_CHOICES = [("Pending", "Pending"), ("Accepted", "Accepted"), ("Resolved", "Resolved"), ("Reunited", "Reunited")]
+    REPORT_STATUS_CHOICES = [("Pending", "Pending"), ("Accepted", "Accepted"),("Rejected", "Rejected"), ("Resolved", "Resolved"), ("Reunited", "Reunited")]
 
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="reports")
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)

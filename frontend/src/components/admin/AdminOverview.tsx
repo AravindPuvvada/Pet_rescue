@@ -116,67 +116,68 @@ const AdminOverview: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Admin Overview</h1>
-        <p className="text-gray-600 mt-2">Monitor and manage your pet rescue platform</p>
-      </div>
+    <div className="space-y-6 min-h-screen p-6 bg-[#E8E0D3] dark:bg-gray-900 text-black dark:text-white">
+  {/* Header */}
+  <div>
+    <h1 className="text-3xl font-bold text-[#5B4438] dark:text-yellow-200">
+      Admin Overview
+    </h1>
+    <p className="mt-2 text-black dark:text-gray-300">
+      Monitor and manage your pet rescue platform
+    </p>
+  </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statCards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={index}
-              className="bg-white rounded-lg shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
-                  <p className="text-3xl font-bold text-gray-900">{card.value}</p>
-                </div>
-                <div className={`w-12 h-12 ${card.bgColor} rounded-lg flex items-center justify-center`}>
-                  <Icon className={`w-6 h-6 ${card.textColor}`} />
-                </div>
-              </div>
+  {/* Stats Grid */}
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {statCards.map((card, index) => {
+      const Icon = card.icon;
+      return (
+        <div
+          key={index}
+          className="bg-[#F5EFE6] dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-[#5B4438]/20 dark:border-gray-700 hover:shadow-xl transition-shadow"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-[#5B4438] dark:text-gray-200 mb-1">{card.title}</p>
+              <p className="text-3xl font-bold text-[#5B4438] dark:text-white">{card.value}</p>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Platform Health</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <h3 className="font-medium text-gray-700">Success Rate</h3>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full" 
-                style={{ width: `${stats.resolvedCases > 0 ? (stats.resolvedCases / (stats.lostRequests + stats.foundRequests)) * 100 : 0}%` }}
-              ></div>
-            </div>
-            <p className="text-sm text-gray-600">
-              {stats.resolvedCases} out of {stats.lostRequests + stats.foundRequests} cases resolved
-            </p>
-          </div>
-          <div className="space-y-3">
-            <h3 className="font-medium text-gray-700">Platform Activity</h3>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Active</span>
-              </div>
-              <div className="text-sm text-gray-600">
-                {stats.totalUsers} registered users
-              </div>
+            <div className={`w-12 h-12 ${card.bgColor} rounded-lg flex items-center justify-center`}>
+              <Icon className={`w-6 h-6 ${card.textColor}`} />
             </div>
           </div>
         </div>
+      );
+    })}
+  </div>
+
+  {/* Recent Activity */}
+  <div className="bg-[#F5EFE6] dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-[#5B4438]/20 dark:border-gray-700">
+    <h2 className="text-xl font-semibold text-[#5B4438] dark:text-white mb-4">Platform Health</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <h3 className="font-medium text-[#5B4438] dark:text-white">Success Rate</h3>
+        <div className="w-full bg-[#D8CFC0] dark:bg-gray-700 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full" 
+            style={{ width: `${stats.resolvedCases > 0 ? (stats.resolvedCases / (stats.lostRequests + stats.foundRequests)) * 100 : 0}%` }}
+          ></div>
+        </div>
+        <p className="text-sm text-black dark:text-gray-300">{stats.resolvedCases} cases resolved</p>
+      </div>
+      <div className="space-y-3">
+        <h3 className="font-medium text-[#5B4438] dark:text-white">Platform Activity</h3>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-sm text-black dark:text-gray-300">Active</span>
+          </div>
+          <div className="text-sm text-black dark:text-gray-300">{stats.totalUsers} registered users</div>
+        </div>
       </div>
     </div>
+  </div>
+</div>
+
   );
 };
 

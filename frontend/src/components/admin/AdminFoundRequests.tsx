@@ -9,7 +9,7 @@ interface UIFoundPetReport {
   location: string;
   petType: 'Dog' | 'Cat' | 'Other'; 
   breed: string;
-  status: 'Pending' | 'Accepted' | 'Resolved' | 'Reunited';
+  status: 'Pending' | 'Accepted' | 'Rejected' | 'Resolved' | 'Reunited';
   imageUrl: string;
   createdBy: string;
   modifiedBy: string;
@@ -110,6 +110,7 @@ const DashboardStyles = () => (
     .dashboard-container .status { padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: #fff; text-transform: uppercase; }
     .dashboard-container .status.pending { background-color: #ffc107; color: #212529; }
     .dashboard-container .status.accepted { background-color: #28a745; }
+    .dashboard-container .status.rejected { background-color: #fa0303ff; }
     .dashboard-container .status.resolved { background-color: #6f42c1; }
     .dashboard-container .status.reunited { background-color: #17a2b8; }
 
@@ -277,6 +278,7 @@ const AdminFoundRequests: React.FC = () => {
     total: reports.length,
     pending: reports.filter(r => r.status === 'Pending').length,
     accepted: reports.filter(r => r.status === 'Accepted').length,
+    rejected: reports.filter(r => r.status === 'Rejected').length,
     resolved: reports.filter(r => r.status === 'Resolved').length,
     reunited: reports.filter(r => r.status === 'Reunited').length,
   }), [reports]);
@@ -295,6 +297,7 @@ const AdminFoundRequests: React.FC = () => {
           <div className="stat-card"><h3>Total Reports</h3><p>{stats.total}</p></div>
           <div className="stat-card"><h3>Pending</h3><p>{stats.pending}</p></div>
           <div className="stat-card"><h3>Accepted</h3><p>{stats.accepted}</p></div>
+          <div className="stat-card"><h3>Rejected</h3><p>{stats.rejected}</p></div>
           <div className="stat-card"><h3>Resolved</h3><p>{stats.resolved}</p></div>
           <div className="stat-card"><h3>Reunited</h3><p>{stats.reunited}</p></div>
         </div>
@@ -366,7 +369,8 @@ const EditFormModal = ({ report, onClose, onSave }: { report: UIFoundPetReport, 
             <div className="form-group">
                 <label htmlFor="status">Update Report Status</label>
                 <select id="status" name="status" value={formData.status} onChange={handleStatusChange}>
-                    <option value="Pending">Pending</option><option value="Accepted">Accepted</option><option value="Resolved">Resolved</option><option value="Reunited">Reunited</option>
+                    <option value="Pending">Pending</option><option value="Accepted">Accepted</option><option value="Rejected">Rejected</option><option value="Resolved">Resolved</option><option value="Reunited">Reunited</option>
+
                 </select>
             </div>
             <div className="form-group">
