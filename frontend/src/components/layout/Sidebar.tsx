@@ -7,6 +7,7 @@ import {
   Dog,
   Bird,
   Gift,
+  MessageSquare,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -45,6 +46,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       id: "reward-points",
       label: "Reward Points",
       icon: Gift, // 🎁
+    },
+    {
+      id: "create-feedback", // ✅ New menu item for feedback
+      label: "Create Feedback", // ✅ Display label
+      icon: MessageSquare, // ✅ Feedback icon
     },
     {
       id: "profile",

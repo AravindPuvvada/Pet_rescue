@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from django.contrib.auth.hashers import make_password, check_password
 from .models import (
     Profile, Pet, PetType,
-    PetMedicalHistory, PetReport, PetAdoption, Notification, RewardPoint
+    PetMedicalHistory, PetReport, PetAdoption, Notification, RewardPoint, FeedbackStory
 )
 from .serializers import (
     ProfileSerializer, PetTypeSerializer, PetSerializer,
@@ -13,7 +13,7 @@ from .serializers import (
     PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer,
       PetReportListSerializer, PetAdoptionListSerializer, AdminApprovalSerializer, UserPetReportSerializer,
         UserAdoptionRequestSerializer, AdminUserSerializer,AdminPetReportSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
-        RegisterSerializer, VerifyRegisterSerializer,UserAdoptionDetailSerializer, RewardPointSerializer
+        RegisterSerializer, VerifyRegisterSerializer,UserAdoptionDetailSerializer, RewardPointSerializer, FeedbackStorySerializer
 )
 from .utils import send_otp_email, verify_otp
 
@@ -1205,7 +1205,6 @@ class AdoptablePetsAPIView(APIView):
         # Use a new key 'adoptable_pets' for clarity on the frontend
         return Response({"adoptable_pets": data}, status=status.HTTP_200_OK)
 
-
 # -------------------------
 # Recent Pets ViewSet
 # -------------------------
@@ -1228,74 +1227,98 @@ class RecentPetsAPIView(APIView):
 
 
 # Points configuration
-RESCUER_POINTS = 20
-ADOPTER_POINTS = 10
 
-# -------------------------
-# Update reward points automatically with reason
-# -------------------------
-def calculate_user_rewards(user):
-    reasons = []
-
-    # Rescuer points: only for reports marked as "Found"
-    found_reports = PetReport.objects.filter(user=user, report_status="Found")
-    rescuer_points = found_reports.count() * RESCUER_POINTS  # Fixed variable name
-    if found_reports.count() > 0:
-        reasons.append(f"Rescued {found_reports.count()} pets")
-
-    # Adopter points: all approved adoptions
-    adoptions = PetAdoption.objects.filter(requestor=user, status="Approved")
-    adopter_points = adoptions.count() * ADOPTER_POINTS
-    if adoptions.count() > 0:
-        reasons.append(f"Approved {adoptions.count()} adoptions")
-
-    total_points = rescuer_points + adopter_points
-    reason_text = "; ".join(reasons) if reasons else "No points yet"
-
-    # Get or create reward object
-    reward_obj, created = RewardPoint.objects.get_or_create(user=user)
-    reward_obj.points = total_points
-    reward_obj.reason = reason_text
-    reward_obj.update_badge()  # Ensure this method exists in RewardPoint model
-    reward_obj.save()
-    return reward_obj
 
 # -------------------------
 # API: My Rewards
 # -------------------------
 class MyRewardView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    RESCUER_POINTS = 20
+    ADOPTER_POINTS = 10
+
+    @staticmethod
+    def calculate_user_rewards(user):
+        reasons = []
+
+        # Rescuer points: only for reports that are "Accepted" and pet_status is "Found"
+        accepted_found_reports = PetReport.objects.filter(user=user, report_status="Accepted", pet_status="Found")
+        rescuer_points = accepted_found_reports.count() * MyRewardView.RESCUER_POINTS
+        if accepted_found_reports.count() > 0:
+            reasons.append(f"Rescued {accepted_found_reports.count()} pets")
+
+        # Adopter points: all approved adoptions
+        approved_adoptions = PetAdoption.objects.filter(requestor=user, status="Approved")
+        adopter_points = approved_adoptions.count() * MyRewardView.ADOPTER_POINTS
+        if approved_adoptions.count() > 0:
+            reasons.append(f"Approved {approved_adoptions.count()} adoptions")
+
+        total_points = rescuer_points + adopter_points
+        reason_text = "; ".join(reasons) if reasons else "No points yet"
+
+        # Get or create reward object
+        reward_obj, created = RewardPoint.objects.get_or_create(user=user)
+        reward_obj.points = total_points
+        reward_obj.reason = reason_text
+        reward_obj.update_badge()  # make sure this exists in RewardPoint model
+        reward_obj.save()
+        return reward_obj
 
     def get(self, request):
         user = request.user
-        reward_obj = calculate_user_rewards(user)
+        reward_obj = MyRewardView.calculate_user_rewards(user)
         serializer = RewardPointSerializer(reward_obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-# -------------------------
-# API: All Users Rewards (Admin)
-# -------------------------
+
+# utils.py or at the top of views.py
+def calculate_user_rewards(user):
+    RESCUER_POINTS = 20
+    ADOPTER_POINTS = 10
+    reasons = []
+
+    # Rescuer points: only for reports that are "Accepted" and pet_status is "Found"
+    accepted_found_reports = PetReport.objects.filter(user=user, report_status="Accepted", pet_status="Found")
+    rescuer_points = accepted_found_reports.count() * RESCUER_POINTS
+    if accepted_found_reports.count() > 0:
+        reasons.append(f"Rescued {accepted_found_reports.count()} pets")
+
+    # Adopter points: all approved adoptions
+    approved_adoptions = PetAdoption.objects.filter(requestor=user, status="Approved")
+    adopter_points = approved_adoptions.count() * ADOPTER_POINTS
+    if approved_adoptions.count() > 0:
+        reasons.append(f"Approved {approved_adoptions.count()} adoptions")
+
+    total_points = rescuer_points + adopter_points
+    reason_text = "; ".join(reasons) if reasons else "No points yet"
+
+    reward_obj, created = RewardPoint.objects.get_or_create(user=user)
+    reward_obj.points = total_points
+    reward_obj.reason = reason_text
+    reward_obj.update_badge()
+    reward_obj.save()
+    return reward_obj
+
 class AllRewardsView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
-        # Get query params
+        # Query params
         search = request.query_params.get("search")
         badge = request.query_params.get("badge")  # e.g. Gold, Silver, Bronze
         min_points = request.query_params.get("min_points")
         max_points = request.query_params.get("max_points")
         ordering = request.query_params.get("ordering")  # "points" or "-points"
 
-        # Start with all users
         users = Profile.objects.all()
         rewards_list = []
 
-        # Calculate rewards dynamically for each user
+        # Calculate rewards for each user
         for user in users:
             reward_obj = calculate_user_rewards(user)
             rewards_list.append(reward_obj)
 
-        # 🔎 Search by username/email
+        # Search by username/email
         if search:
             rewards_list = [
                 r for r in rewards_list
@@ -1303,23 +1326,40 @@ class AllRewardsView(APIView):
                 or (r.user.email and search.lower() in r.user.email.lower())
             ]
 
-        # 🏅 Filter by badge
+        # Filter by badge
         if badge:
             rewards_list = [r for r in rewards_list if r.badge and r.badge.lower() == badge.lower()]
 
-        # 🔢 Filter by points range
+        # Filter by points range
         if min_points:
             rewards_list = [r for r in rewards_list if r.points >= int(min_points)]
         if max_points:
             rewards_list = [r for r in rewards_list if r.points <= int(max_points)]
 
-        # ↕ Ordering by points
+        # Ordering
         if ordering:
             reverse = ordering.startswith("-")
             field = ordering.lstrip("-")
             if field == "points":
                 rewards_list.sort(key=lambda r: r.points, reverse=reverse)
 
-        # Serialize
+        # Serialize and return
         serializer = RewardPointSerializer(rewards_list, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FeedbackStoryAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = [JSONParser,MultiPartParser, FormParser]
+
+    def get(self, request, *args, **kwargs):
+        stories = FeedbackStory.objects.all().order_by("-submitted_at")
+        serializer = FeedbackStorySerializer(stories, many=True, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        serializer = FeedbackStorySerializer(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

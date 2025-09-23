@@ -191,6 +191,17 @@ class RewardPoint(models.Model):
         return f"{self.user.username} - {self.points} Points - {self.badge} ({self.reason})"
 
 
+class FeedbackStory(models.Model):
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    story = models.TextField()
+    pet_name = models.CharField(max_length=100)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    image = models.ImageField(
+        upload_to="feedback_stories/",  # path inside MEDIA_ROOT
+        null=True,
+        blank=True
+    )
 
-
-
+    def _str_(self):
+        return f"{self.user} - {self.title}"

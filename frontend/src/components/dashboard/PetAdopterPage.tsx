@@ -38,7 +38,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     return <span className={`${baseClasses} ${styleClasses}`}>{status}</span>;
 };
 
-const AdoptionPage: React.FC = () => {
+const PetAdopterPage: React.FC = () => {
     const [myAdoptions, setMyAdoptions] = useState<CorrectedAdoption[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -178,4 +178,4 @@ const AdoptionPage: React.FC = () => {
     );
 };
 
-export default AdoptionPage;
+export default PetAdopterPage;

@@ -7,9 +7,10 @@ import RescuedPetsPage from "../pages/RescuedPetsPage";
 import ProfilePage from "../pages/ProfilePage";
 import { apiService } from "../../services/api";
 import LostPetsPage from "../pages/LostPetsPage";
-import AdoptionPage from '../pages/PetAdoptionPage';
 import RecentPets from "../pages/RecentPets";
 import MyRewards from "../pages/MyRewards";
+import AdoptionPage from "../pages/AdoptionPage";
+import CreateFeedbackPage from "../pages/CreateFeedbackPage";
 interface User {
   id: number;
   username: string;
@@ -72,6 +73,8 @@ const MainPage: React.FC = () => {
         return <RecentPets />;
       case "reward-points":
         return <MyRewards />;
+      case 'create-feedback': // ✅ NEW case for Create Feedback
+        return <CreateFeedbackPage />;
       default:
         return <Dashboard />;
     }

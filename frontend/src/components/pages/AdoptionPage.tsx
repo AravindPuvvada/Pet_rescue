@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import PetCard from '../petcard/PetCard';
-import PetDetailsModal from '../pages/PetDetails';
-import AdoptionRequestForm from '../pages/AdoptionRequestForm';
+import PetDetailsModal from './PetDetails';
+import AdoptionRequestForm from './AdoptionRequestForm';
 import type { Pet } from '../../services/api';
 import { apiService } from '../../services/api';
 

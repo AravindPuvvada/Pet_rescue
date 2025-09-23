@@ -1,4 +1,13 @@
 // TypeScript interfaces for API responses
+export interface FeedbackStory {
+  id: number;
+  user: string;        // comes from StringRelatedField
+  title: string;
+  story: string;
+  pet_name: string;
+  submitted_at: string; // ISO datetime string
+  image?: string;       
+}
 export interface User {
   id: number;
   username: string;
@@ -263,6 +272,37 @@ interface Reward {
   username: string;
   email: string;
 }
+// 1️⃣ Create a type for adoptable pets response
+export interface AdoptablePet {
+  report_id: number;
+  report_status: string;
+  pet_status: string;
+  image?: string;
+  created_date?: string;
+  pet: {
+    id: number;
+    name: string;
+    pet_type?: string;
+    breed?: string;
+    age?: number;
+    color?: string;
+    address?: string; 
+    city?: string;
+    state?: string;
+    pincode?: number;
+    gender?: string;
+    description?: string;
+    is_diseased: boolean;
+    is_vaccinated: boolean;
+    medical_history?: { 
+      last_vaccinated_date?: string;
+      vaccination_name?: string;
+      disease_name?: string;
+      stage?: string;
+      no_of_years?: string;
+    } | null;
+  };
+}
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -301,10 +341,12 @@ class ApiService {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const isFormData = options.body instanceof FormData;
   const response = await fetch(url, {
     ...options,
     headers: {
-      ...this.getAuthHeaders(),
+      ...(isFormData ? this.getAuthHeadersForFormData() : this.getAuthHeaders()),
+      // ...this.getAuthHeaders(),
       ...options.headers,
     },
   });
@@ -975,45 +1017,30 @@ async getMyPetAdoptions(): Promise<PetAdoption[]> {
       body: JSON.stringify(adoptionData),
   });
   }
-async getAdoptablePets(): Promise<{ adoptable_pets: Array<{
-    report_id: number;
-    report_status: string;
-    pet_status: string;
-    image?: string;
-    created_date?: string;
-    pet: {
-      id: number;
-      name: string;
-      pet_type?: string;
-      breed?: string;
-      age?: number;
-      color?: string;
-      address?: string; 
-      city?: string;
-      state?: string;
-      pincode?: number;
-      gender?: string;
-      description?: string;
-      is_diseased: boolean;
-      is_vaccinated: boolean;
-      medical_history?: { 
-        last_vaccinated_date?: string;
-        vaccination_name?: string;
-        disease_name?: string;
-        stage?: string;
-        no_of_years?: string;
-      } | null;
-    };
-  }> }> {
-    // ⭐ NEW ENDPOINT for fetching pets that meet adoption criteria
-    return this.request<{ adoptable_pets: Array<any> }>('/adoptable-pets/');
-  }
+async getAdoptablePets(): Promise<{ adoptable_pets: AdoptablePet[] }> {
+  return this.request<{ adoptable_pets: AdoptablePet[] }>('/adoptable-pets/');
+}
   async getAllRewards(): Promise<Reward[]> {
   return this.request('/all-rewards/');  
 }
 
 async getMyRewards(): Promise<Reward> {
   return this.request('/my-rewards/');    
+}
+async createFeedbackStory(data: FormData) {
+    return this.request("/feedback-stories/", {
+      method: "POST",
+      body: data,
+      headers: {}, // let browser set multipart/form-data
+    });
+  }
+
+  // ======================
+// Feedback Stories
+// ======================
+async getFeedbackStories(): Promise<FeedbackStory[]> {
+  // Returns an array of FeedbackStory objects from backend
+  return this.request('/feedback-stories/');
 }
 }
 

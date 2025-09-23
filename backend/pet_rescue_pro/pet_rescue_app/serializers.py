@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Profile, PetType, Pet, PetMedicalHistory,
-    PetReport, PetAdoption, Notification, RewardPoint
+    PetReport, PetAdoption, Notification, RewardPoint, FeedbackStory
 )
 from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
@@ -394,3 +394,26 @@ class RewardPointSerializer(serializers.ModelSerializer):
     class Meta:
         model = RewardPoint
         fields = ['user', 'username', 'email', 'points', 'badge', 'reason']
+
+class FeedbackStorySerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+    # keep this for upload
+    image = serializers.ImageField(required=False, allow_null=True)
+    # expose an absolute URL for clients
+    image_url = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = FeedbackStory
+        fields = [
+            "id", "user",
+            "title", "story", "pet_name",
+            "submitted_at", "image", "image_url"
+        ]
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return settings.MEDIA_URL + obj.image.name
