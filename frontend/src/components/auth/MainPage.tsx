@@ -8,7 +8,7 @@ import ProfilePage from "../pages/ProfilePage";
 import { apiService } from "../../services/api";
 import LostPetsPage from "../pages/LostPetsPage";
 import AdoptionPage from '../pages/PetAdoptionPage';
-
+import RecentPets from "../pages/RecentPets";
 interface User {
   id: number;
   username: string;
@@ -67,6 +67,8 @@ const MainPage: React.FC = () => {
         return <LostPetsPage />;
       case "adoption-pets":
         return <AdoptionPage />;
+      case "recent-pets":
+        return <RecentPets />;
       default:
         return <Dashboard />;
     }

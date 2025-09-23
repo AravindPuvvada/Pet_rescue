@@ -1,23 +1,20 @@
 // PetCard.tsx
 
 import React, { useState } from 'react';
-import { MapPin, Calendar, MessageSquare } from 'lucide-react'; 
+import { MapPin, Calendar, MessageSquare, ShieldCheck } from 'lucide-react'; // Added ShieldCheck for status
 import type { Pet } from '../../services/api';
 
 interface PetCardProps {
     pet: Pet;
     onViewDetails: (pet: Pet) => void;
-    onReport: (pet: Pet) => void; 
-    // ⭐ NEW PROP
-    reportButtonLabel: string; 
+    onReport: (pet: Pet) => void;
+    reportButtonLabel: string;
 }
 
 // Type-specific Placeholder component (remains the same)
 const AnimalSilhouettePlaceholder: React.FC<{ petType: string | undefined }> = ({ petType }) => {
-    
     let iconPath;
     let label;
-
     const normalizedType = String(petType).toLowerCase();
     
     if (normalizedType.includes('dog')) {
@@ -33,13 +30,8 @@ const AnimalSilhouettePlaceholder: React.FC<{ petType: string | undefined }> = (
     
     return (
         <div className="w-full h-56 flex flex-col items-center justify-center bg-gray-200 text-gray-400 p-4">
-            <svg
-              className="w-1/3 h-1/3 text-gray-500 mb-2"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 200 200"
-              fill="currentColor"
-            >
-              <path d={iconPath} />
+            <svg className="w-1/3 h-1/3 text-gray-500 mb-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="currentColor" >
+                <path d={iconPath} />
             </svg>
             <p className="text-sm font-semibold text-gray-600">No Image ({label})</p>
         </div>
@@ -47,7 +39,6 @@ const AnimalSilhouettePlaceholder: React.FC<{ petType: string | undefined }> = (
 };
 
 
-// ⭐ UPDATE PetCard component to use reportButtonLabel
 const PetCard: React.FC<PetCardProps> = ({ pet, onViewDetails, onReport, reportButtonLabel }) => {
     const [imageError, setImageError] = useState(false);
     const handleImageError = () => setImageError(true);
@@ -60,16 +51,20 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onViewDetails, onReport, reportB
         return text;
     };
     
-    const locationDisplay = [pet.city, pet.state, pet.pincode].filter(Boolean).join(', ');
+    const locationDisplay = [pet.city, pet.state].filter(Boolean).join(', ');
+
+    // ⭐ START OF CHANGES: Logic to build the status string
+    const statusParts = [];
+    if (pet.is_vaccinated) {
+        statusParts.push('Vaccinated');
+    }
+    statusParts.push(pet.is_diseased ? 'Diseased' : 'Healthy');
+    const statusDisplay = statusParts.join(', ');
+    // ⭐ END OF CHANGES
 
     return (
-        <div 
-            className="bg-white rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-2xl flex flex-col"
-        >
-            <div 
-                onClick={() => onViewDetails(pet)}
-                className="cursor-pointer flex flex-col flex-grow"
-            >
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-2xl flex flex-col">
+            <div onClick={() => onViewDetails(pet)} className="cursor-pointer flex flex-col flex-grow">
                 {/* Image Section */}
                 {pet.image && !imageError ? (
                     <img
@@ -86,10 +81,10 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onViewDetails, onReport, reportB
                 <div className="p-5 flex flex-col flex-grow">
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">{pet.name ?? 'Unnamed'}</h3>
 
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                    <div className="flex items-center text-sm text-gray-600 mb-2 flex-wrap">
                         <span>{pet.breed ?? 'Unknown breed'}</span>
                         <span className="mx-2">•</span>
-                        <span>{pet.age ?? 'Unknown age'}</span>
+                        <span>{pet.age ? `${pet.age} years old` : 'Unknown age'}</span>
                         <span className="mx-2">•</span>
                         <span>{pet.gender ?? 'Unknown'}</span>
                     </div>
@@ -100,7 +95,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onViewDetails, onReport, reportB
                     </p>
 
                     {/* Metadata */}
-                    <div className="space-y-2 mb-4 text-sm text-gray-700 border-t pt-4 mt-auto">
+                    <div className="space-y-2 text-sm text-gray-700 border-t pt-4 mt-auto">
                         <div className="flex items-center">
                             <MapPin className="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" />
                             <span>Location: <strong>{locationDisplay || 'N/A'}</strong></span>
@@ -109,14 +104,16 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onViewDetails, onReport, reportB
                             <Calendar className="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" />
                             <span>Listed on: <strong>{pet.created_date ? new Date(pet.created_date).toLocaleDateString() : 'N/A'}</strong></span>
                         </div>
+                        {/* ⭐ UPDATED STATUS DISPLAY */}
                         <div className="flex items-center">
-                            <span>Status: <strong>{pet.is_vaccinated ? 'Vaccinated' : 'Unvaccinated'}, {pet.is_diseased ? 'Diseased' : 'Healthy'}</strong></span>
+                            <ShieldCheck className="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" />
+                            <span>Status: <strong>{statusDisplay}</strong></span>
                         </div>
                     </div>
                 </div>
             </div>
             
-            {/* Report Button (Now uses the prop for text) */}
+            {/* Report Button */}
             <div className="p-4 pt-0">
                 <button
                     onClick={(e) => {
@@ -125,7 +122,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onViewDetails, onReport, reportB
                     }}
                     className="w-full px-4 py-2 font-semibold text-white bg-red-500 rounded-lg shadow-md hover:bg-red-600 flex items-center justify-center transition-colors"
                 >
-                    <MessageSquare className="w-4 h-4 mr-2" /> {reportButtonLabel} {/* ⭐ USE THE PROP */}
+                    <MessageSquare className="w-4 h-4 mr-2" /> {reportButtonLabel}
                 </button>
             </div>
         </div>

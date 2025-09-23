@@ -155,6 +155,9 @@ class Notification(models.Model):
     def __str__(self):
         receiver_name = self.receiver.username if self.receiver else "Unknown"
         return f"Notification from {self.sender.username} to {receiver_name}"
+    
+
+
 
 
 

@@ -37,6 +37,9 @@ import json
 import google.generativeai as genai
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from datetime import timedelta
+
 
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -219,30 +222,38 @@ class PetReportViewSet(viewsets.ModelViewSet):
 # -------------------------
 # PetAdoption ViewSet
 # -------------------------
+# -------------------------
+# PetAdoption ViewSet
+# -------------------------
 class PetAdoptionViewSet(viewsets.ModelViewSet):
     queryset = PetAdoption.objects.all().order_by("id")
     serializer_class = PetAdoptionSerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        """
-        Assigns the currently logged-in user as the requestor for the adoption
-        and populates the audit fields.
-        """
-        user = self.request.user
-        # ✅ SAVE THE USER TO ALL THREE FIELDS
-        serializer.save(
-            requestor=user, 
-            created_by=user, 
-            modified_by=user
-        )
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(requestor=user,created_by=user, modified_by=user)
+
+        # ✨ START: New logic to notify the admin
+        # Find the admin user to notify
+        try:
+            admin_user = Profile.objects.get(is_superuser=True)
+        except Profile.DoesNotExist:
+            admin_user = None
+
+        # If an admin exists, create the notification
+        if admin_user:
+            Notification.objects.create(
+                sender=user,
+                receiver=admin_user,
+                content=f"User '{user.username}' has submitted a claim for the pet '{adoption_instance.pet.name}'.",
+                pet=serializer.pet
+            )
+        # ✨ END: New logic
 
     def perform_update(self, serializer):
-        """
-        Updates the 'modified_by' field when the record is changed.
-        """
-        # ✅ UPDATE THE 'modified_by' FIELD ON EVERY UPDATE
-        serializer.save(modified_by=self.request.user)
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(modified_by=user)
 
 
 # -------------------------
@@ -1137,3 +1148,76 @@ class UserPetAdoptionsAPIView(APIView):
         serializer = UserAdoptionDetailSerializer(user_adoptions, many=True, context={'request': request})
         
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class AdoptablePetsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        # time_cutoff = timezone.now() - timedelta(days=30) 
+        time_cutoff = timezone.now() - timedelta(minutes=1)  # For testing, set to 1 minute
+        # 2. Filter Pet Reports based on the adoption criteria
+        reports = PetReport.objects.filter(
+            pet_status="Found",          # Must be a found pet
+            report_status="Accepted",    # The report must have been accepted by an admin
+            modified_date__lte=time_cutoff  # Accepted more than 30 days ago
+        ).order_by("-created_date")
+
+        # 3. Serialize the data in the same format as your other pet list endpoints
+        data = []
+        for report in reports:
+            pet_obj = report.pet
+            medical_history = PetMedicalHistory.objects.filter(pet=pet_obj).first()
+            
+            medical_data = {
+                "last_vaccinated_date": medical_history.last_vaccinated_date.isoformat() if medical_history and medical_history.last_vaccinated_date else None,
+                "vaccination_name": medical_history.vaccination_name if medical_history else None,
+                "disease_name": medical_history.disease_name if medical_history else None,
+                "stage": medical_history.stage if medical_history else None,
+                "no_of_years": medical_history.no_of_years if medical_history else None,
+            }
+            
+            data.append({
+                "report_id": report.id,
+                "report_status": report.report_status,
+                "pet_status": report.pet_status,
+                "image": report.image.url if report.image else None,
+                "created_date": report.created_date.isoformat(),
+                "pet": {
+                    "id": pet_obj.id,
+                    "name": pet_obj.name,
+                    "pet_type": str(pet_obj.pet_type) if pet_obj.pet_type else None,
+                    "breed": pet_obj.breed,
+                    "age": pet_obj.age,
+                    "color": pet_obj.color,
+                    "address": pet_obj.address, 
+                    "description": pet_obj.description,
+                    "city": pet_obj.city,
+                    "state": pet_obj.state,
+                    "pincode": pet_obj.pincode,
+                    "gender": pet_obj.gender,
+                    "is_diseased": pet_obj.is_diseased,
+                    "is_vaccinated": pet_obj.is_vaccinated,
+                    "medical_history": medical_data,
+                }
+            })
+            
+        # Use a new key 'adoptable_pets' for clarity on the frontend
+        return Response({"adoptable_pets": data}, status=status.HTTP_200_OK)
+
+
+# -------------------------
+# Recent Pets ViewSet
+# -------------------------
+class RecentPetsAPIView(APIView):
+    """
+    API to fetch 10 most recently added pets.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        pets = Pet.objects.all().order_by('-created_date')[:10]
+        serializer = PetSerializer(pets, many=True, context={"request": request})
+        return Response({
+            "recent_pets": serializer.data
+        }, status=status.HTTP_200_OK)

@@ -7,7 +7,8 @@ from .views import (
     AdminUserListView, AdminUserDetailView, AdminPetReportsAPIView, AdminPetReportDetailAPIView, AdminUnreadNotificationCountAPIView,
     AdminLostPetRequestsAPIView, AdminManageReportStatusAPIView, VerifyRegisterAPIView,
     PasswordResetRequestAPIView, PasswordResetConfirmAPIView,AdminFoundPetRequestsAPIView,AdminChangePasswordView,
-    FoundPetRequestAPIView, UserLostPetsAPIView, UserFoundPetsAPIView, AdoptionPetsView,UserPetAdoptionsAPIView
+    FoundPetRequestAPIView, UserLostPetsAPIView, UserFoundPetsAPIView, AdoptionPetsView,UserPetAdoptionsAPIView, AdoptablePetsAPIView,
+    RecentPetsAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -62,7 +63,8 @@ urlpatterns = [
     path("my-found-pets/", UserFoundPetsAPIView.as_view(), name="my-found-pets"),
     path("my-pet-adoptions/", UserPetAdoptionsAPIView.as_view(), name="my-pet-adoptions"),
     path("my-pet-adoptions/", UserPetAdoptionsAPIView.as_view(), name="my-pet-adoptions"),
-
+    path("adoptable-pets/", AdoptablePetsAPIView.as_view(), name="adoptable-pets"),
+    path("pets/recent/", RecentPetsAPIView.as_view(), name="recent-pets"),
 ]
 
 # Include all router URLs
