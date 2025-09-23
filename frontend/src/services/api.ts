@@ -47,13 +47,13 @@ export interface CurrentUser {
 }
 
 export interface AdminUser {
-  id: number;
-  username: string;
-  email: string;
-  is_active: boolean;
-  is_staff: boolean;
-  is_superuser: boolean;
-  // other fields optionally returned by admin user list
+ id: number;
+ username: string;
+ email: string;
+ is_active: boolean;
+ is_staff: boolean;
+ is_superuser: boolean;
+ // other fields optionally returned by admin user list
 }
 
 export interface PetType {
@@ -300,6 +300,10 @@ class ApiService {
       ...options.headers,
     },
   });
+  if (response.status === 401) {
+    this.logout();
+    window.location.href = "/login"; // 🔴 force redirect if token invalid
+  }
   return this.handleResponse<T>(response);
 }
 
@@ -349,49 +353,45 @@ class ApiService {
   }
 
   logout() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-  }
+  // Remove only auth-related keys, not everything in localStorage
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("is_superuser");
+  localStorage.removeItem("currentAccountId");
+  localStorage.removeItem("storedAccounts");
+}
+
 
   // Profile endpoints
-  async getProfile(): Promise<User> {
-    return this.request<User>('/profile_details/');
-  }
+  async getProfile(): Promise<CurrentUser> {
+ return this.request('/profile_details/');
+ }
 
-  async updateProfile(id: number, profileData: Partial<User>): Promise<UserProfile> {
-  const url = `${API_BASE_URL}/profiles/${id}/`;
-  const response = await fetch(url, {
+  async updateProfile(id: number, profileData: Partial<ProfileData> | FormData) {
+    const isFormData = profileData instanceof FormData;
+    const url = `${API_BASE_URL}/profiles/${id}/`;
+
+    const response = await fetch(url, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`,
-    },
-    body: JSON.stringify(profileData),
-  });
-  return this.handleResponse<UserProfile>(response);
-}
+    headers: isFormData ? this.getAuthHeadersForFormData() : this.getAuthHeaders(),
+    body: isFormData ? profileData : JSON.stringify(profileData),
+    });
+    return this.handleResponse(response);
+ }
 
-async updateProfileWithImage(id: number, profileData: FormData): Promise<User> {
-  const url = `${API_BASE_URL}/profiles/${id}/`;
+async updateProfileWithImage(id: number, profileData: FormData) {
+ const url = `${API_BASE_URL}/profiles/${id}/`;
+ const response = await fetch(url, {
+ method: 'PATCH',
+ headers: this.getAuthHeadersForFormData(),
+ body: profileData,
+ });
+ return this.handleResponse(response);
+ }
 
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`, // ✅ only Authorization
-    },
-    body: profileData, // ✅ FormData
-  });
-
-  return this.handleResponse<User>(response);
-}
-
-
-
-
-
-async deleteProfile(id: number): Promise<void> {
-  return this.request<void>(`/profiles/${id}/`, { method: 'DELETE' });
-}
+ async deleteProfile(id: number) {
+ return this.request(`/profiles/${id}/`, { method: 'DELETE' });
+ }
 
 
   // Pet endpoints
@@ -731,11 +731,11 @@ async createPetMedicalHistory(
     return this.handleResponse<User>(response);
   }
 async changePassword(data: { current_password: string; new_password: string }) {
-  return this.request('/admin/change-password/', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
+ return this.request('/admin/change-password/', {
+ method: 'POST',
+ body: JSON.stringify(data),
+});
+ }
   // async deleteProfile(id: number): Promise<void> {
   //   return this.request<void>(`/profiles/${id}/`, {
   //     method: 'DELETE',
@@ -763,100 +763,94 @@ async changePassword(data: { current_password: string; new_password: string }) {
   return `${baseUrl}/media/${imagePath}`;
 }
 async change_Password(passwordData: ChangePasswordData) {
-    return this.request('/profiles/change-password/', {
-      method: 'POST',
-      body: JSON.stringify(passwordData),
-    });
-  }
-async getAdminUsers(
-  params?: {
-    search?: string;
-    role?: string;
-    page?: number;
-    gender?: string;
-    superuser?: string;
-  }
-): Promise<AdminUser[] | { results: AdminUser[]; count: number }> {
-  const qs = new URLSearchParams();
-
-  if (params?.search) qs.set('search', params.search);
-  if (params?.role && params.role !== 'all') qs.set('role', params.role);
-  if (params?.page) qs.set('page', String(params.page));
-  if (params?.gender) qs.set('gender', params.gender);
-  if (params?.superuser) qs.set('superuser', params.superuser);
-
-  const query = qs.toString() ? `?${qs.toString()}` : '';
-
-  return this.request<AdminUser[] | { results: AdminUser[]; count: number }>(
-    `/admin/users/${query}`
-  );
+ return this.request('/profiles/change-password/', {
+ method: 'POST',
+ body: JSON.stringify(passwordData),
+ });
 }
+async getAdminUsers(params?: {
+ search?: string;
+ role?: string;
+ page?: number;
+ gender?: string;
+ superuser?: string;
+}): Promise<AdminUser[] | { results: AdminUser[]; count: number }> {
+ const qs = new URLSearchParams();
+ if (params?.search) qs.set('search', params.search);
+ if (params?.role && params.role !== 'all') qs.set('role', params.role);
+ if (params?.page) qs.set('page', String(params.page));
+ // NEW filter params supported by your backend view:
+ if (params?.gender) qs.set('gender', params.gender);
+ if (params?.superuser) qs.set('superuser', params.superuser);
+ const query = qs.toString() ? `?${qs.toString()}` : '';
+ return this.request(`/admin/users/${query}`);
+ }
 getStoredAccounts(): StoredAccount[] {
-    const data = localStorage.getItem('storedAccounts');
-    return data ? JSON.parse(data) : [];
-  }
+ const data = localStorage.getItem('storedAccounts');
+ return data ? JSON.parse(data) : [];
+ }
 
   saveStoredAccounts(accounts: StoredAccount[]) {
-    localStorage.setItem('storedAccounts', JSON.stringify(accounts));
-  }
+ localStorage.setItem('storedAccounts', JSON.stringify(accounts));
+ }
 
   addStoredAccount(account: StoredAccount): boolean {
-    const accounts = this.getStoredAccounts();
-    const exists = accounts.find(a => a.id === account.id);
-    if (exists) {
-      const updated = accounts.map(a => (a.id === account.id ? { ...a, ...account } : a));
-      this.saveStoredAccounts(updated);
-      return true;
-    }
-    accounts.unshift(account);
-    this.saveStoredAccounts(accounts);
-    return true;
-  }
+ const accounts = this.getStoredAccounts();
+ const exists = accounts.find(a => a.id === account.id);
+ if (exists) {
+ const updated = accounts.map(a => (a.id === account.id ? { ...a, ...account } : a));
+ this.saveStoredAccounts(updated);
+ return true;
+ }
+ accounts.unshift(account);
+ this.saveStoredAccounts(accounts);
+ return true;
+ }
 switchToAccount(accountId: string): boolean {
-    const accounts = this.getStoredAccounts();
-    const account = accounts.find(acc => acc.id === accountId);
-    if (!account) return false;
+ const accounts = this.getStoredAccounts();
+ const account = accounts.find(acc => acc.id === accountId);
+if (!account) return false;
 
-    account.lastUsed = new Date().toISOString();
-    this.saveStoredAccounts(accounts);
-    localStorage.setItem('currentAccountId', accountId);
-    return true;
-  }
+ account.lastUsed = new Date().toISOString();
+ this.saveStoredAccounts(accounts);
+ localStorage.setItem('currentAccountId', accountId);
+ return true;
+ }
 
   removeAccount(accountId: string): boolean {
-    let accounts = this.getStoredAccounts();
-    accounts = accounts.filter(acc => acc.id !== accountId);
-    this.saveStoredAccounts(accounts);
+ let accounts = this.getStoredAccounts();
+  accounts = accounts.filter(acc => acc.id !== accountId);
+   this.saveStoredAccounts(accounts);
 
-    const currentId = this.getCurrentAccountId();
-    if (currentId === accountId) {
-      localStorage.removeItem('currentAccountId');
-    }
-    return true;
+   const currentId = this.getCurrentAccountId();
+   if (currentId === accountId) {
+   localStorage.removeItem('currentAccountId');
   }
+   return true;
+   }
 
-  getCurrentAccountId(): string | null {
-    return localStorage.getItem('currentAccountId');
-  }
+   getCurrentAccountId(): string | null {
+   return localStorage.getItem('currentAccountId');
+   }
 
   updateCurrentAccountProfile(updatedProfile: Partial<ProfileData>): boolean {
-    const currentId = this.getCurrentAccountId();
-    if (!currentId) return false;
-    const accounts = this.getStoredAccounts();
-    const idx = accounts.findIndex(a => a.id === currentId);
-    if (idx === -1) return false;
+   const currentId = this.getCurrentAccountId();
+   if (!currentId) return false;
+   const accounts = this.getStoredAccounts();
+   const idx = accounts.findIndex(a => a.id === currentId);
+   if (idx === -1) return false;
 
-    const existing = accounts[idx];
-    const merged = {
-      ...existing,
-      username: (updatedProfile.username as string) ?? existing.username,
-      email: (updatedProfile.email as string) ?? existing.email,
-      profile_image: (updatedProfile.profile_image as string | null) ?? existing.profile_image,
-    };
+   const existing = accounts[idx];
+   const merged = {
+   ...existing,
+   username: (updatedProfile.username as string) ?? existing.username,
+   email: (updatedProfile.email as string) ?? existing.email,
+   profile_image: (updatedProfile.profile_image as string | null) ?? existing.profile_image,
+   };
     accounts[idx] = merged;
-    this.saveStoredAccounts(accounts);
-    return true;
-  }
+   this.saveStoredAccounts(accounts);
+   return true;
+   }
   async getFoundPets(): Promise<{ found_pets: Array<{
     report_id: number;
     report_status: string;

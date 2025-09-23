@@ -111,7 +111,7 @@ const Chatbot: React.FC = () => {
 
       {/* Chatbot Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[28rem] bg-white shadow-lg rounded-2xl flex flex-col">
+        <div className="fixed bottom-6 right-6 w-[28rem] h-[32rem] bg-white shadow-lg rounded-2xl flex flex-col">
           {/* Header with Minimize Button */}
           <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-3 flex justify-between items-center rounded-t-2xl">
             <span>Help & Support</span>
