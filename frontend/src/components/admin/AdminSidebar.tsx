@@ -53,6 +53,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeSection, onSectionCha
       color: 'from-purple-500 to-purple-600'
     },
     {
+      id: 'rewards',
+      label: 'Rewards Page',
+      icon: UserPlus,
+      color: 'from-pink-500 to-purple-600'
+    },
+    {
       id: 'notifications',
       label: 'Notifications',
       icon: Bell,

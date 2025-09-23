@@ -157,7 +157,38 @@ class Notification(models.Model):
         return f"Notification from {self.sender.username} to {receiver_name}"
     
 
+class RewardPoint(models.Model):
+    BADGES = [
+        ("Starter", 0),
+        ("Bronze", 100),
+        ("Silver", 200),
+        ("Gold", 500),
+        ("Platinum", 1000),
+    ]
 
+    user = models.OneToOneField(Profile, on_delete=models.CASCADE)
+    points = models.IntegerField(default=0)
+    badge = models.CharField(max_length=50, default="Starter")
+    reason = models.CharField(max_length=255, blank=True, null=True)  # renamed field
+
+    def add_points(self, points: int, reason: str):
+        """
+        Add points to this user and update badge.
+        Store the reason in reason.
+        """
+        self.points += points
+        self.reason = reason
+        self.update_badge()
+        self.save()
+
+    def update_badge(self):
+        for name, score in reversed(self.BADGES):
+            if self.points >= score:
+                self.badge = name
+                break
+
+    def _str_(self):
+        return f"{self.user.username} - {self.points} Points - {self.badge} ({self.reason})"
 
 
 

@@ -9,6 +9,7 @@ import { apiService } from "../../services/api";
 import LostPetsPage from "../pages/LostPetsPage";
 import AdoptionPage from '../pages/PetAdoptionPage';
 import RecentPets from "../pages/RecentPets";
+import MyRewards from "../pages/MyRewards";
 interface User {
   id: number;
   username: string;
@@ -69,6 +70,8 @@ const MainPage: React.FC = () => {
         return <AdoptionPage />;
       case "recent-pets":
         return <RecentPets />;
+      case "reward-points":
+        return <MyRewards />;
       default:
         return <Dashboard />;
     }

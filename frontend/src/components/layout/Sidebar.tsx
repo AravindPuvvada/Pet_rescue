@@ -38,6 +38,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       label: 'Recent Pets',
       icon: PawPrint,
     },
+    {
+      id: 'reward-points',
+      label: 'Reward Points',
+      icon: PawPrint,
+    },
   ];
 
   return (

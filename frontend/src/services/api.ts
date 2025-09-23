@@ -255,6 +255,14 @@ export interface UserProfile {
   profile_image?: string;
   is_superuser: boolean;
 }
+interface Reward {
+  user: number;   // ✅ add this
+  points: number;
+  badge: string;
+  reason: string;
+  username: string;
+  email: string;
+}
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -1000,6 +1008,13 @@ async getAdoptablePets(): Promise<{ adoptable_pets: Array<{
     // ⭐ NEW ENDPOINT for fetching pets that meet adoption criteria
     return this.request<{ adoptable_pets: Array<any> }>('/adoptable-pets/');
   }
+  async getAllRewards(): Promise<Reward[]> {
+  return this.request('/all-rewards/');  
+}
+
+async getMyRewards(): Promise<Reward> {
+  return this.request('/my-rewards/');    
+}
 }
 
 export const apiService = new ApiService();

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Profile, PetType, Pet, PetMedicalHistory,
-    PetReport, PetAdoption, Notification
+    PetReport, PetAdoption, Notification, RewardPoint
 )
 from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
@@ -386,3 +386,11 @@ class UserAdoptionDetailSerializer(serializers.ModelSerializer):
             'image': image_url,  # The image URL from the report
             'medical_history': medical_data  # The nested medical history
         }
+    
+class RewardPointSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.CharField(source='user.email', read_only=True)
+
+    class Meta:
+        model = RewardPoint
+        fields = ['user', 'username', 'email', 'points', 'badge', 'reason']

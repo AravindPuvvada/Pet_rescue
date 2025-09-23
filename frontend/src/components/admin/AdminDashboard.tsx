@@ -10,6 +10,7 @@ import AdminFoundRequests from "./AdminFoundRequests";
 import AdminAdoptRequests from "./AdminAdoptRequests";
 import AdminNotifications from "./AdminNotifications";
 import { apiService } from "../../services/api";
+import RewardsPage from "./RewardsPage";
 
 interface User {
   id: number;
@@ -66,6 +67,8 @@ const AdminDashboard: React.FC = () => {
         return <AdminAdoptRequests />;
       case "notifications":
         return <AdminNotifications />;
+      case "rewards":
+        return <RewardsPage />;
       default:
         return <AdminOverview />;
     }
