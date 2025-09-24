@@ -176,6 +176,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeSection, onSectionCha
       id: 'report-status',
       label: 'Report Status',
       icon: ClipboardList,
+      emoji:'📊',
       color: 'from-cyan-500 to-cyan-600'
     },
     {

@@ -124,21 +124,21 @@ const SuccessStoriesSection: React.FC = () => {
   const active = stories[currentStory];
 
   return (
-    <section id="stories" className="py-20 bg-gradient-to-b from-gray-50 to-white">
+    <section id="stories" className="py-20 bg-light-neutral dark:bg-dark-background theme-transition">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-light-text dark:text-dark-secondary mb-6">
             Success <span className="bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">Stories</span>
           </h2>
           <div className="w-24 h-1 bg-gradient-to-r from-orange-500 to-pink-500 mx-auto mb-8"></div>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-light-secondary dark:text-dark-neutral max-w-2xl mx-auto">
             Every reunion tells a story of hope, community, and the unbreakable bond between pets and their families
           </p>
         </div>
 
         {/* Story Carousel */}
         <div className="relative max-w-4xl mx-auto">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          <div className="bg-white dark:bg-dark-primary rounded-3xl shadow-2xl overflow-hidden theme-transition">
             <div className="md:flex">
               <div className="md:w-1/2">
                 <img
@@ -154,12 +154,12 @@ const SuccessStoriesSection: React.FC = () => {
                   <Star className="w-5 h-5 text-yellow-400 mr-1" />
                   <Star className="w-5 h-5 text-yellow-400 mr-1" />
                   <Star className="w-5 h-5 text-yellow-400 mr-3" />
-                  <span className="text-sm text-gray-500">Success Story</span>
+                  <span className="text-sm text-light-secondary/80 dark:text-dark-neutral/80">Success Story</span>
                 </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                <h3 className="text-2xl md:text-3xl font-bold text-light-text dark:text-dark-secondary mb-4">
                   {active.title}
                 </h3>
-                <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                <p className="text-light-secondary dark:text-dark-neutral text-lg leading-relaxed mb-6">
                   {active.description}
                 </p>
                 <div className="flex items-center">
@@ -167,8 +167,8 @@ const SuccessStoriesSection: React.FC = () => {
                     <User className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900">{active.owner}</div>
-                    <div className="text-sm text-gray-500">Pet Owner</div>
+                    {/* <div className="font-semibold text-light-text dark:text-dark-secondary">{active.owner}</div> */}
+                    <div className="text-sm text-light-secondary/80 dark:text-dark-neutral/80">Pet Owner</div>
                   </div>
                 </div>
               </div>
@@ -184,7 +184,7 @@ const SuccessStoriesSection: React.FC = () => {
                 className={`w-3 h-3 rounded-full transition-all ${
                   index === currentStory
                     ? 'bg-gradient-to-r from-orange-500 to-pink-500 w-8'
-                    : 'bg-gray-300 hover:bg-gray-400'
+                    : 'bg-light-secondary/30 hover:bg-light-secondary/50 dark:bg-dark-neutral/30 dark:hover:bg-dark-neutral/50'
                 }`}
                 aria-label={`Go to story ${index + 1}`}
               />

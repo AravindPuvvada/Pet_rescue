@@ -84,7 +84,7 @@ const AdminNotifications: React.FC = () => {
           <p className="text-gray-600 mt-2">System notifications and alerts</p>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="bg-orange-100 text-orange-800 px-4 py-2 rounded-lg font-medium">
+          <div className="bg-orange-100 text-orange-800 px-4 py-2 rounded-lg font-medium dark:bg-green-500 dark:text-black">
             Total: {notifications.length}
           </div>
           {unreadCount > 0 && (
@@ -100,16 +100,16 @@ const AdminNotifications: React.FC = () => {
         {notifications.map((notification) => (
           <div 
             key={notification.id}
-            className={`bg-white rounded-lg shadow p-6 border border-gray-200 hover:shadow-md transition-shadow 
+            className={`bg-white rounded-lg shadow p-6 border border-gray-200 dark:bg-gray-800 hover:shadow-md transition-shadow 
             ${!notification.is_read ? 'border-red-500 border-2' : ''}`}
           >
-            <div className="flex items-start space-x-4">
+            <div className="flex items-start space-x-4" >
               <div className="flex-shrink-0">
                 {getNotificationIcon(notification.content)}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-start mb-2">
-                  <p className={`text-gray-900 font-medium ${!notification.is_read ? 'font-bold' : ''}`}>
+                  <p className={`dark:text-yellow-300 font-medium ${!notification.is_read ? 'font-bold' : ''}`}>
                     {notification.content}
                   </p>
                   <span className="text-xs text-gray-500">
@@ -119,20 +119,20 @@ const AdminNotifications: React.FC = () => {
                 
                 {notification.sender && (
                   <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
-                    <User className="w-4 h-4" />
-                    <span>From: {notification.sender.username}</span>
+                    <User className="w-4 h-4 dark:text-white" />
+                    <span className='dark:text-white'>From: {notification.sender.username}</span>
                   </div>
                 )}
                 
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <Calendar className="w-4 h-4" />
-                  <span>{new Date(notification.created_at).toLocaleString()}</span>
+                  <span className='dark:text-blue-800'>{new Date(notification.created_at).toLocaleString()}</span>
                 </div>
 
                 {notification.pet && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-1">Related Pet:</h4>
-                    <p className="text-sm text-gray-600">
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg dark:bg-gray-500">
+                    <h4 className="font-medium text-gray-900 mb-1 dark:text-yellow-300">Related Pet:</h4>
+                    <p className="text-sm text-gray-600 dark:text-white">
                       {notification.pet.name} –{" "}
                       {typeof notification.pet.pet_type === "string"
                         ? notification.pet.pet_type

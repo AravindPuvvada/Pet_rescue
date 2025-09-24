@@ -106,6 +106,7 @@ const AdminOverview: React.FC = () => {
       textColor: 'text-green-600'
     },
   ];
+  // const themeBgClass = theme === 'light' ? 'bg-[#E8E0D3] text-black' : 'bg-gray-900 text-gray-100';
 
   if (loading) {
     return (
@@ -116,13 +117,13 @@ const AdminOverview: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 min-h-screen p-6 bg-[#E8E0D3] dark:bg-gray-900 text-black dark:text-white">
+    <div className="space-y-6 min-h-screen p-6 bg-[#E8E0D3] bg-[#E8E0D3] text-black text-black dark:text-white">
   {/* Header */}
   <div>
-    <h1 className="text-3xl font-bold text-[#5B4438] dark:text-yellow-200">
+    <h1 className="text-3xl font-bold text-[#5B4438] dark:text-gray-800">
       Admin Overview
     </h1>
-    <p className="mt-2 text-black dark:text-gray-300">
+    <p className="mt-2 text-black dark:text-gray-500">
       Monitor and manage your pet rescue platform
     </p>
   </div>

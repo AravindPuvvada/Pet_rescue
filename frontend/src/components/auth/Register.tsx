@@ -58,7 +58,6 @@ const Register: React.FC = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
 
-  // carousel
   const petImages = [
     {
       url: "https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=800",
@@ -77,6 +76,7 @@ const Register: React.FC = () => {
       caption: "Bella's journey from lost to loved",
     },
   ];
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % petImages.length);
@@ -84,7 +84,6 @@ const Register: React.FC = () => {
     return () => clearInterval(timer);
   }, [petImages.length]);
 
-  // validation
   const validateEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validatePhone = (phone: string) => /^[0-9]{10}$/.test(phone);
@@ -135,57 +134,52 @@ const Register: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
-  setLoading(true);
-  setMessage(null);
+    e.preventDefault();
+    if (!validateForm()) return;
+    setLoading(true);
+    setMessage(null);
 
-  try {
-    const userData = {
-      username: formData.username,
-      email: formData.email,
-      password: formData.password,
-      ...(formData.phone && { phone: formData.phone }),
-      ...(formData.address && { address: formData.address }),
-      ...(formData.pincode && { pincode: formData.pincode }),
-      ...(formData.gender && { gender: formData.gender }),
-    };
+    try {
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        ...(formData.phone && { phone: formData.phone }),
+        ...(formData.address && { address: formData.address }),
+        ...(formData.pincode && { pincode: formData.pincode }),
+        ...(formData.gender && { gender: formData.gender }),
+      };
 
-    const res = await fetch(`${API_BASE_URL}/register/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
+      const res = await fetch(`${API_BASE_URL}/register/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || err.error || "Registration failed");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || err.error || "Registration failed");
+      }
+
+      setMessage("Verification code sent! Please verify your account.");
+      localStorage.setItem("verifyData", JSON.stringify(userData));
+
+      setTimeout(() => {
+        navigate("/verify-account", { state: userData });
+      }, 1200);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setMessage(err.message);
+      } else {
+        setMessage("Registration failed. Try again.");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setMessage("Verification code sent! Please verify your account.");
-
-    // Store all registration data in localStorage for verification page
-    localStorage.setItem("verifyData", JSON.stringify(userData));
-
-    setTimeout(() => {
-      navigate("/verify-account", { state: userData }); // Pass all data in state
-    }, 1200);
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      setMessage(err.message);
-    } else {
-      setMessage("Registration failed. Try again.");
-    }
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
 
   return (
     <div className="min-h-screen bg-light-primary dark:bg-dark-background flex items-center justify-center p-4 theme-transition">
-      {/* Theme Toggle */}
       <div className="fixed top-6 right-6 z-50">
         <ThemeToggle variant="auth" />
       </div>
@@ -197,8 +191,6 @@ const Register: React.FC = () => {
         className="w-full max-w-6xl bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-light-secondary/20 dark:border-dark-secondary/20 overflow-hidden"
       >
         <div className="flex flex-col lg:flex-row min-h-[700px]">
-
-          {/* Left Side - Image Carousel */}
           <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-light-accent dark:bg-dark-accent">
             <div className="absolute inset-0 bg-black/10 dark:bg-black/20 z-10"></div>
             
@@ -212,7 +204,7 @@ const Register: React.FC = () => {
                 className="absolute inset-0"
               >
                 <img
-                  src="https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=800"
+                  src={petImages[currentImageIndex].url}
                   alt="Pet reunion story"
                   className="w-full h-full object-cover"
                 />
@@ -220,7 +212,6 @@ const Register: React.FC = () => {
               </motion.div>
             </AnimatePresence>
 
-            {/* Overlay Content */}
             <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
               <motion.div
                 key={currentImageIndex}
@@ -234,12 +225,11 @@ const Register: React.FC = () => {
                   <span className="text-white font-semibold text-sm">Success Story</span>
                 </div>
                 <p className="text-white text-sm font-medium leading-relaxed">
-                  Max reunited with his family after 5 days
+                  {petImages[currentImageIndex].caption}
                 </p>
               </motion.div>
             </div>
 
-            {/* Image Indicators */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
               {petImages.map((_, index) => (
                 <button
@@ -255,9 +245,7 @@ const Register: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Side - Registration Form */}
           <div className="w-full lg:w-1/2 p-6 lg:p-10 flex flex-col justify-center">
-            {/* Header */}
             <div className="text-center mb-6">
               <motion.div
                 initial={{ scale: 0 }}
@@ -287,7 +275,6 @@ const Register: React.FC = () => {
               </motion.p>
             </div>
 
-            {/* Success/Error Message */}
             <AnimatePresence>
               {message && (
                 <motion.div
@@ -295,14 +282,13 @@ const Register: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className={`mb-4 p-3 rounded-lg text-center font-medium backdrop-blur-sm border text-sm ${
-  message === "Verification code sent! Please verify your account."
-    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700'
-    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700'
-}`}
-
+                    message.includes("Verification code sent")
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700'
+                      : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700'
+                  }`}
                 >
                   <div className="flex items-center justify-center">
-                    {message.includes('successfully') && (
+                    {message.includes('Verification code sent') && (
                       <CheckCircle className="w-4 h-4 mr-2" />
                     )}
                     {message}
@@ -311,7 +297,6 @@ const Register: React.FC = () => {
               )}
             </AnimatePresence>
 
-            {/* Registration Form */}
             <motion.div
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -319,7 +304,6 @@ const Register: React.FC = () => {
               className="bg-light-neutral/70 dark:bg-dark-primary/70 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-light-secondary/20 dark:border-dark-secondary/20 max-h-[500px] overflow-y-auto"
             >
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Username and Email - 2 columns on desktop */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
@@ -378,37 +362,36 @@ const Register: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Password Fields - 2 columns on desktop */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-700">
+                    <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
                       Password
                     </label>
                     <div className="relative group">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         name="password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        className={`w-full pl-10 pr-10 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 placeholder-gray-400 text-sm ${
-                          errors.password ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-11 pr-10 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary placeholder-light-text/50 dark:placeholder-dark-neutral ${
+                          errors.password ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                         }`}
                         placeholder="Create password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral hover:text-light-text dark:hover:text-dark-secondary transition-colors"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     {errors.password && (
                       <motion.p
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-600 text-xs"
+                        className="text-red-600 dark:text-red-400 text-sm mt-1"
                       >
                         {errors.password}
                       </motion.p>
@@ -416,34 +399,34 @@ const Register: React.FC = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-700">
+                    <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
                       Confirm Password
                     </label>
                     <div className="relative group">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                       <input
                         type={showConfirmPassword ? 'text' : 'password'}
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
-                        className={`w-full pl-10 pr-10 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 placeholder-gray-400 text-sm ${
-                          errors.confirmPassword ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-11 pr-10 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary placeholder-light-text/50 dark:placeholder-dark-neutral ${
+                          errors.confirmPassword ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                         }`}
                         placeholder="Confirm password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral hover:text-light-text dark:hover:text-dark-secondary transition-colors"
                       >
-                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     {errors.confirmPassword && (
                       <motion.p
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-600 text-xs"
+                        className="text-red-600 dark:text-red-400 text-sm mt-1"
                       >
                         {errors.confirmPassword}
                       </motion.p>
@@ -451,30 +434,29 @@ const Register: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Phone and Gender - 2 columns on desktop */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-700">
-                      Phone Number (Optional)
+                    <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
+                      Phone (Optional)
                     </label>
                     <div className="relative group">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                       <input
                         type="tel"
                         name="phone"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        className={`w-full pl-10 pr-3 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 placeholder-gray-400 text-sm ${
-                          errors.phone ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-11 pr-4 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary placeholder-light-text/50 dark:placeholder-dark-neutral ${
+                          errors.phone ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                         }`}
-                        placeholder="Enter phone number"
+                        placeholder="Enter phone"
                       />
                     </div>
                     {errors.phone && (
                       <motion.p
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-red-600 text-xs"
+                        className="text-red-600 dark:text-red-400 text-sm mt-1"
                       >
                         {errors.phone}
                       </motion.p>
@@ -482,17 +464,17 @@ const Register: React.FC = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-700">
+                    <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
                       Gender (Optional)
                     </label>
                     <div className="relative group">
-                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                       <select
                         name="gender"
                         value={formData.gender}
                         onChange={handleInputChange}
-                        className={`w-full pl-10 pr-3 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 text-sm ${
-                          errors.gender ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-11 pr-4 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary ${
+                          errors.gender ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                         }`}
                       >
                         <option value="">Select gender</option>
@@ -501,78 +483,57 @@ const Register: React.FC = () => {
                         <option value="Other">Other</option>
                       </select>
                     </div>
-                    {errors.gender && (
-                      <motion.p
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-red-600 text-xs"
-                      >
-                        {errors.gender}
-                      </motion.p>
-                    )}
                   </div>
                 </div>
 
-                {/* Address - Full width */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-700">
+                  <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
                     Address (Optional)
                   </label>
                   <div className="relative group">
-                    <MapPin className="absolute left-3 top-3 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                     <input
                       type="text"
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
-                      className={`w-full pl-10 pr-3 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 placeholder-gray-400 text-sm ${
-                        errors.address ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                      className={`w-full pl-11 pr-4 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary placeholder-light-text/50 dark:placeholder-dark-neutral ${
+                        errors.address ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                       }`}
-                      placeholder="Enter your address"
+                      placeholder="Enter address"
                     />
                   </div>
-                  {errors.address && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-red-600 text-xs"
-                    >
-                      {errors.address}
-                    </motion.p>
-                  )}
                 </div>
-
-                {/* Pincode - Single column */}
+                
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-700">
+                  <label className="block text-sm font-semibold text-light-text dark:text-dark-secondary mb-2">
                     Pincode (Optional)
                   </label>
                   <div className="relative group">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text/50 dark:text-dark-neutral w-5 h-5 group-focus-within:text-light-accent dark:group-focus-within:text-dark-accent transition-colors" />
                     <input
                       type="text"
                       name="pincode"
                       value={formData.pincode}
                       onChange={handleInputChange}
-                      className={`w-full pl-10 pr-3 py-2.5 bg-white/50 backdrop-blur-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all duration-300 placeholder-gray-400 text-sm ${
-                        errors.pincode ? 'border-red-300 bg-red-50/50' : 'border-gray-200 hover:border-gray-300'
+                      className={`w-full pl-11 pr-4 py-3 bg-white/70 dark:bg-dark-background/50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:border-transparent transition-all duration-300 text-light-text dark:text-dark-secondary placeholder-light-text/50 dark:placeholder-dark-neutral ${
+                        errors.pincode ? 'border-red-300 dark:border-red-600' : 'border-light-secondary/30 dark:border-dark-secondary/30'
                       }`}
                       placeholder="Enter pincode"
                       maxLength={6}
                     />
                   </div>
-                  {errors.pincode && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-red-600 text-xs"
-                    >
-                      {errors.pincode}
-                    </motion.p>
-                  )}
+                   {errors.pincode && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-red-600 dark:text-red-400 text-sm mt-1"
+                      >
+                        {errors.pincode}
+                      </motion.p>
+                    )}
                 </div>
 
-                {/* Submit Button */}
                 <motion.button
                   type="submit"
                   disabled={loading}
@@ -592,7 +553,6 @@ const Register: React.FC = () => {
               </form>
             </motion.div>
 
-            {/* Sign In Link */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -615,6 +575,5 @@ const Register: React.FC = () => {
     </div>
   );
 };
-
 
 export default Register;

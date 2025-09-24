@@ -149,8 +149,8 @@ const AdoptionPage: React.FC = () => {
     <>
       <div className="animate-fade-in container mx-auto p-4">
         <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-gray-800 mb-2">Adopt a Pet</h1>
-          <p className="text-lg text-gray-600">Find your new best friend. These lovely pets are looking for a forever home.</p>
+          <h1 className="text-4xl font-extrabold text-gray-800 mb-2 dark:text-dark-secondary">Adopt a Pet</h1>
+          <p className="text-lg text-gray-600 dark:text-dark-neutral">Find your new best friend. These lovely pets are looking for a forever home.</p>
         </div>
 
         {/* You can re-insert your filter UI section here */}

@@ -170,19 +170,19 @@ const FoundPetPage: React.FC = () => {
       <Toaster position="top-center" reverseOrder={false} />
       <div className="animate-fade-in container mx-auto p-4">
         <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-gray-800 mb-2">Found Pets</h1>
-          <p className="text-lg text-gray-600">These pets have been safely found. Help us locate their owners.</p>
+          <h1 className="text-4xl font-extrabold text-gray-800 mb-2 dark:text-dark-secondary">Found Pets</h1>
+          <p className="text-lg text-gray-600 dark:text-dark-neutral">These pets have been safely found. Help us locate their owners.</p>
         </div>
 
         {/* Filter UI Section */}
-        <div className="mb-8 p-6 bg-white rounded-lg shadow-md">
+        <div className="mb-8 p-6 bg-white rounded-lg shadow-md dark:bg-dark-primary">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
                 <div className="lg:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Location (City)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-dark-secondary">Location (City)</label>
                     <input type="text" name="location" value={inputFilters.location} onChange={handleFilterChange} placeholder="e.g., Pune" className="w-full p-2 border border-gray-300 rounded-lg" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Pet Type</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-dark-secondary">Pet Type</label>
                     <select name="petType" value={inputFilters.petType} onChange={handleFilterChange} className="w-full p-2 border border-gray-300 rounded-lg">
                         <option value="">All</option>
                         <option value="Dog">Dog</option>
@@ -191,11 +191,11 @@ const FoundPetPage: React.FC = () => {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-dark-secondary">Color</label>
                     <input type="text" name="color" value={inputFilters.color} onChange={handleFilterChange} placeholder="e.g., Black" className="w-full p-2 border border-gray-300 rounded-lg" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Breed</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-dark-secondary">Breed</label>
                     <input type="text" name="breed" value={inputFilters.breed} onChange={handleFilterChange} placeholder="e.g., Beagle" className="w-full p-2 border border-gray-300 rounded-lg" />
                 </div>
                 <button onClick={handleApplyFilters} className="flex items-center justify-center bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">

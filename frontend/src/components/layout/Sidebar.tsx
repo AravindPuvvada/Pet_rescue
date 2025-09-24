@@ -38,8 +38,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
       emoji: '🎁', 
     },
     {
-      id: "create-feedback", // ✅ New menu item for feedback
-      label: "Create Feedback", // ✅ Display label
+      id: "create-feedback", 
+      label: "Create Feedback", 
       emoji: '💬', 
     },
   ];
@@ -51,8 +51,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
   };
 
   return (
-    <div className="fixed left-0 top-16 mt-6 h-[calc(100vh-4rem)] w-64 bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-md shadow-2xl border-r border-light-secondary/20 dark:border-dark-secondary/20 z-40 theme-transition flex flex-col justify-between">
-      <div className="p-6">
+    // Removed justify-between to let the child elements handle the layout
+    <div className="fixed left-0 top-16 mt-6 h-[calc(100vh-4rem)] w-64 bg-light-neutral/90 dark:bg-dark-primary/90 backdrop-blur-md shadow-2xl border-r border-light-secondary/20 dark:border-dark-secondary/20 z-40 theme-transition flex flex-col">
+      {/* Added flex-1 and overflow-y-auto to make this area scrollable */}
+      <div className="p-6 flex-1 overflow-y-auto">
         <nav className="space-y-3">
           {menuItems.map((item) => {
             const isActive = activeSection === item.id;
@@ -77,7 +79,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
         </nav>
       </div>
 
-      <div className="p-6">
+      {/* This profile section will now stick to the bottom because the above div is flex-1 */}
+      <div className="p-6 border-t border-light-secondary/20 dark:border-dark-secondary/20">
         <button
           onClick={() => onSectionChange(profileItem.id)}
           className={`w-full flex items-center space-x-4 px-6 py-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 group ${
@@ -97,50 +100,3 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => 
 };
 
 export default Sidebar;
-
-
-
-
-// const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange }) => {
-//   const menuItems = [
-//     {
-//       id: "dashboard",
-//       label: "Dashboard",
-//       icon: LayoutDashboard,
-//     },
-//     {
-//       id: "lost-pets",
-//       label: "Lost Pets",
-//       icon: Dog, // 🐶
-//     },
-//     {
-//       id: "rescued-pets",
-//       label: "Rescued Pets",
-//       icon: Heart,
-//     },
-//     {
-//       id: "adoption-pets",
-//       label: "Adopt Pet",
-//       icon: PawPrint, // 🐱
-//     },
-//     {
-//       id: "recent-pets",
-//       label: "Recent Pets",
-//       icon: Bird, // 🐦
-//     },
-//     {
-//       id: "reward-points",
-//       label: "Reward Points",
-//       icon: Gift, // 🎁
-//     },
-//     {
-//       id: "create-feedback", // ✅ New menu item for feedback
-//       label: "Create Feedback", // ✅ Display label
-//       icon: MessageSquare, 
-//     },
-//     {
-//       id: "profile",
-//       label: "Profile",
-//       icon: User,
-//     },
-//   ];

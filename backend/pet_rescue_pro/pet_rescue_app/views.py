@@ -1273,8 +1273,8 @@ class MyRewardView(APIView):
 
 # utils.py or at the top of views.py
 def calculate_user_rewards(user):
-    RESCUER_POINTS = 20
-    ADOPTER_POINTS = 10
+    RESCUER_POINTS = 100
+    ADOPTER_POINTS = 50
     reasons = []
 
     # Rescuer points: only for reports that are "Accepted" and pet_status is "Found"

@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 
 const Chatbot: React.FC = () => {
   const { activeSection } = useChatContext();
-  const [isOpen, setIsOpen] = useState(false); // ✅ starts closed
+  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -12,17 +12,14 @@ const Chatbot: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // ✅ Force chatbox to start closed on mount
   useEffect(() => {
     setIsOpen(false);
   }, []);
 
-  // Auto-scroll to bottom whenever messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load messages from local storage when component mounts
   useEffect(() => {
     const savedMessages = localStorage.getItem("chatMessages");
     if (savedMessages) {
@@ -30,22 +27,18 @@ const Chatbot: React.FC = () => {
     }
   }, []);
 
-  // Save messages to local storage whenever they change
   useEffect(() => {
     localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
-  // Reset unread count when chatbox opens + show welcome message if no history
   useEffect(() => {
-  if (isOpen) {
-    setUnreadCount(0);
-    if (messages.length === 0) {
-      setMessages([{ sender: "Bot", text: "This is Blob 🤖, how can I help you?" }]);
+    if (isOpen) {
+      setUnreadCount(0);
+      if (messages.length === 0) {
+        setMessages([{ sender: "Bot", text: "This is Blob 🤖, how can I help you?" }]);
+      }
     }
-  }
-}, [isOpen, messages.length]);
-
-
+  }, [isOpen, messages.length]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -61,7 +54,7 @@ const Chatbot: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: input,
-          section: activeSection, // ✅ send section from context
+          section: activeSection,
         }),
       });
 
@@ -73,14 +66,13 @@ const Chatbot: React.FC = () => {
 
       setMessages([...newMessages, botReply]);
 
-      // If chatbot is closed, increase unread count
       if (!isOpen) {
         setUnreadCount((prev) => prev + 1);
       }
     } catch (error) {
-  console.error(error); // ✅ logs the actual error
-  const errorMsg = { sender: "Bot", text: "⚠️ Error connecting to chatbot." };
-  setMessages([...newMessages, errorMsg]);
+      console.error(error);
+      const errorMsg = { sender: "Bot", text: "⚠️ Error connecting to chatbot." };
+      setMessages([...newMessages, errorMsg]);
       if (!isOpen) {
         setUnreadCount((prev) => prev + 1);
       }
@@ -95,7 +87,7 @@ const Chatbot: React.FC = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-5 py-3 rounded-full shadow-lg hover:scale-105 transition"
+          className="fixed bottom-6 right-6 bg-light-accent dark:bg-dark-accent text-white px-5 py-3 rounded-full shadow-lg hover:scale-105 transition theme-transition"
         >
           💬 Need Help?
           {unreadCount > 0 && (
@@ -111,13 +103,13 @@ const Chatbot: React.FC = () => {
 
       {/* Chatbot Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[28rem] h-[32rem] bg-white shadow-lg rounded-2xl flex flex-col">
+        <div className="fixed bottom-6 right-6 w-[28rem] h-[32rem] bg-light-neutral dark:bg-dark-background shadow-2xl rounded-2xl flex flex-col theme-transition border border-light-secondary/10 dark:border-dark-secondary/20">
           {/* Header with Minimize Button */}
-          <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-3 flex justify-between items-center rounded-t-2xl">
-            <span>Help & Support</span>
+          <div className="bg-light-accent dark:bg-dark-accent text-white p-3 flex justify-between items-center rounded-t-2xl theme-transition">
+            <span className="font-semibold">Help & Support</span>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white text-xl font-bold leading-none"
+              className="text-white text-2xl font-bold leading-none hover:opacity-80 transition"
               aria-label="Minimize chatbot"
             >
               &minus;
@@ -129,34 +121,34 @@ const Chatbot: React.FC = () => {
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`px-3 py-2 rounded-lg max-w-[75%] ${
+                className={`px-3 py-2 rounded-lg max-w-[75%] theme-transition ${
                   msg.sender === "You"
-                    ? "bg-blue-500 text-white self-end"
-                    : "bg-gray-200 text-gray-800 self-start"
+                    ? "bg-light-secondary text-white dark:bg-dark-primary dark:text-dark-secondary self-end"
+                    : "bg-light-primary text-light-text dark:bg-dark-primary dark:text-dark-secondary self-start"
                 }`}
               >
                 <ReactMarkdown>{msg.text}</ReactMarkdown>
               </div>
             ))}
             {loading && (
-              <div className="text-gray-500 text-sm self-start">Bot is typing...</div>
+              <div className="text-light-secondary dark:text-dark-neutral text-sm self-start">Bot is typing...</div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
-          <div className="p-2 border-t flex space-x-2">
+          <div className="p-2 border-t border-light-primary dark:border-dark-primary flex space-x-2 theme-transition">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Type a message..."
-              className="flex-1 border rounded-full px-4 py-2 focus:outline-none"
+              className="flex-1 bg-transparent border border-light-secondary/30 dark:border-dark-primary rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent text-light-text dark:text-dark-secondary placeholder-light-secondary/70 dark:placeholder-dark-neutral theme-transition"
             />
             <button
               onClick={handleSend}
               disabled={loading}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 rounded-full disabled:opacity-50"
+              className="bg-light-accent dark:bg-dark-accent text-white px-4 rounded-full disabled:opacity-50 hover:opacity-90 transition theme-transition"
             >
               Send
             </button>
