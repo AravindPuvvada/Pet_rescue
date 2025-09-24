@@ -205,3 +205,35 @@ class FeedbackStory(models.Model):
 
     def _str_(self):
         return f"{self.user} - {self.title}"
+    
+class UserReport(BaseModel):
+    """
+    Represents a report submitted by a user about an existing PetReport.
+    This can be a 'Sighting', 'Reclaim', or 'Adoption' request.
+    """
+    REPORT_TYPE_CHOICES = [
+        ("Sighting", "Sighting"),
+        ("Reclaim", "Reclaim"),
+        ("Adoption", "Adoption"),
+    ]
+    
+    # Define the new status choices
+    REPORT_STATUS_CHOICES = [
+        ("Pending", "Pending"),
+        ("Accepted", "Accepted"),
+        ("Rejected", "Rejected"),
+        ("Reunited", "Reunited"),
+        ("Resolved", "Resolved"), 
+    ]
+
+
+    pet_report = models.ForeignKey(PetReport, on_delete=models.CASCADE, related_name="user_reports")
+
+    pet_report_creator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="submitted_reports")
+    
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPE_CHOICES)
+    message = models.TextField(blank=False, null=False)
+    report_status = models.CharField(max_length=20, choices=REPORT_STATUS_CHOICES, default="Pending")
+
+    def _str_(self):
+        return f"{self.report_type} report for Pet Report #{self.pet_report.id}"

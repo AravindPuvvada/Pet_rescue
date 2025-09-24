@@ -91,6 +91,7 @@ export interface Pet {
   modified_date: string;
   created_by?: User;
   modified_by?: User;
+  report_id?: number;
   medical_history?: { 
         last_vaccinated_date?: string;
         vaccination_name?: string;
@@ -302,6 +303,24 @@ export interface AdoptablePet {
       no_of_years?: string;
     } | null;
   };
+}
+
+export interface UserReportPayload {
+  pet_report_id: number;
+  report_type: 'Sighting' | 'Reclaim' | 'Adoption';
+  message: string;
+}
+export interface AdminUserReport {
+  id: number;
+  pet_report: AdminPetReport;
+  pet_report_creator: UserProfile;
+  report_type: 'Sighting' | 'Reclaim' | 'Adoption';
+  message: string;
+  report_status: 'Pending' | 'Accepted' | 'Rejected' | 'Reunited' | 'Resolved';
+  created_date: string;
+  modified_date: string;
+  created_by: UserProfile;   
+  modified_by: UserProfile;
 }
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
@@ -1042,6 +1061,25 @@ async getFeedbackStories(): Promise<FeedbackStory[]> {
   // Returns an array of FeedbackStory objects from backend
   return this.request('/feedback-stories/');
 }
+async createUserReport(payload: UserReportPayload): Promise<AdminUserReport> {
+  return this.request<AdminUserReport>('/user-reports/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+  async getAdminUserReports(): Promise<AdminUserReport[]> {
+    return this.request<AdminUserReport[]>('/user-reports/');
+  }
+  async updateUserReportStatus(
+    reportId: number,
+    status: 'Pending' | 'Accepted' | 'Rejected' | 'Reunited' | 'Resolved'
+  ): Promise<AdminUserReport> {
+    return this.request<AdminUserReport>(`/user-reports/${reportId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ report_status: status }),
+  });
+  }
 }
 
 export const apiService = new ApiService();

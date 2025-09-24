@@ -8,7 +8,7 @@ from .views import (
     AdminLostPetRequestsAPIView, AdminManageReportStatusAPIView, VerifyRegisterAPIView,
     PasswordResetRequestAPIView, PasswordResetConfirmAPIView,AdminFoundPetRequestsAPIView,AdminChangePasswordView,
     FoundPetRequestAPIView, UserLostPetsAPIView, UserFoundPetsAPIView, AdoptionPetsView,UserPetAdoptionsAPIView, AdoptablePetsAPIView,
-    RecentPetsAPIView, MyRewardView, AllRewardsView, FeedbackStoryAPIView
+    RecentPetsAPIView, MyRewardView, AllRewardsView, FeedbackStoryAPIView, UserReportViewSet
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -29,6 +29,7 @@ router.register(r"pet-medical-history", PetMedicalHistoryViewSet, basename="petm
 router.register(r"pet-reports", PetReportViewSet, basename="petreport")
 router.register(r"pet-adoptions", PetAdoptionViewSet, basename="petadoption")
 router.register(r"notifications", NotificationViewSet, basename="notification")
+router.register(r"user-reports", UserReportViewSet, basename="userreport")
 
 # URL patterns for registration, login, JWT
 urlpatterns = [

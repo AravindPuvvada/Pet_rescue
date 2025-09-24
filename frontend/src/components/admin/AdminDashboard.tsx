@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
 import AdminSidebar from "./AdminSidebar";
@@ -11,6 +11,7 @@ import AdminAdoptRequests from "./AdminAdoptRequests";
 import AdminNotifications from "./AdminNotifications";
 import RewardsPage from "./RewardsPage";
 import { apiService } from "../../services/api";
+import AdminUserReports from "./AdminUserReports";
 
 interface User {
   id: number;
@@ -43,12 +44,11 @@ const AdminDashboard: React.FC = () => {
   }, [theme]);
 
   // Logout
-  const handleLogout = () => {
+ const handleLogout = useCallback(() => {
     localStorage.clear();
     navigate("/login", { replace: true });
-  };
+  }, [navigate]);
 
-  // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -57,7 +57,12 @@ const AdminDashboard: React.FC = () => {
           navigate("/mainpage");
           return;
         }
-        setUser(userData);
+        setUser({
+          id: userData.id,
+          username: userData.username,
+          email: userData.email,
+          is_superuser: userData.is_superuser ?? false,
+        });
       } catch (error) {
         console.error("Error fetching user profile:", error);
         handleLogout();
@@ -65,8 +70,9 @@ const AdminDashboard: React.FC = () => {
         setLoading(false);
       }
     };
+
     fetchUserProfile();
-  }, [navigate]);
+  }, [navigate, handleLogout]); // now stable
 
   const renderContent = () => {
     switch (activeSection) {
@@ -86,6 +92,8 @@ const AdminDashboard: React.FC = () => {
         return <AdminNotifications />;
       case "rewards":
         return <RewardsPage />;
+      case 'report-status': // This is the new case
+        return <AdminUserReports />;
       default:
         return <AdminOverview />;
     }

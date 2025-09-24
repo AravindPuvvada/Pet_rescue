@@ -11,6 +11,8 @@ interface AdminNavbarProps {
     is_superuser: boolean;
   } | null;
   onLogout: () => void;
+    onToggleTheme: () => void;   // <-- add this
+  theme: "light" | "dark";  
 }
 
 const AdminNavbar: React.FC<AdminNavbarProps> = ({ user, onLogout }) => {

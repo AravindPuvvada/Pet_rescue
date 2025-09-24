@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from django.contrib.auth.hashers import make_password, check_password
 from .models import (
     Profile, Pet, PetType,
-    PetMedicalHistory, PetReport, PetAdoption, Notification, RewardPoint, FeedbackStory
+    PetMedicalHistory, PetReport, PetAdoption, Notification, RewardPoint, FeedbackStory, UserReport
 )
 from .serializers import (
     ProfileSerializer, PetTypeSerializer, PetSerializer,
@@ -13,12 +13,12 @@ from .serializers import (
     PetAdoptionSerializer, NotificationSerializer, LoginSerializer, LostPetRequestSerializer, AdminNotificationSerializer,
       PetReportListSerializer, PetAdoptionListSerializer, AdminApprovalSerializer, UserPetReportSerializer,
         UserAdoptionRequestSerializer, AdminUserSerializer,AdminPetReportSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
-        RegisterSerializer, VerifyRegisterSerializer,UserAdoptionDetailSerializer, RewardPointSerializer, FeedbackStorySerializer
+        RegisterSerializer, VerifyRegisterSerializer,UserAdoptionDetailSerializer, RewardPointSerializer, FeedbackStorySerializer, UserReportCreateSerializer,UserReportSerializer
 )
 from .utils import send_otp_email, verify_otp
 
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser 
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -1363,3 +1363,102 @@ class FeedbackStoryAPIView(APIView):
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UserReportViewSet(viewsets.ModelViewSet):
+    """
+    A ViewSet for handling user-submitted reports (Sighting/Reclaim).
+    - Users can CREATE reports.
+    - Admins can LIST, RETRIEVE, and UPDATE (mark as resolved) reports.
+    """
+    # queryset = UserReport.objects.select_related('pet_report_creator', 'pet_report_pet', 'pet_report_user').order_by('-created_date')
+    queryset = UserReport.objects.select_related('pet_report_creator', 'pet_report').order_by('-created_date')
+
+    def get_serializer_class(self):
+        """Return appropriate serializer class based on action."""
+        if self.action == 'create':
+            return UserReportCreateSerializer
+        return UserReportSerializer
+
+    def get_permissions(self):
+        """
+        - Any authenticated user can create a report.
+        - Only admins can view or modify reports.
+        """
+        if self.action == 'create':
+            self.permission_classes = [IsAuthenticated]
+        else:
+            self.permission_classes = [IsAdminUser]
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        """
+        Set user fields correctly and create a notification for the admin.
+        - 'user' will be the original pet reporter.
+        - 'created_by' will be the new user submitting this report.
+        """
+        requester = self.request.user 
+        pet_report_instance = serializer.validated_data['pet_report']
+        original_reporter = pet_report_instance.user
+
+        user_report = serializer.save(
+            pet_report_creator=original_reporter, # <-- RENAME this argument
+            created_by=requester,
+            modified_by=requester
+        )
+
+        # The rest of the notification logic remains the same
+        try:
+            admin_user = Profile.objects.filter(is_superuser=True).first()
+            if admin_user:
+                Notification.objects.create(
+                    sender=requester, # The notification is sent by the new requester
+                    receiver=admin_user,
+                    content=f"New '{user_report.report_type}' report from {requester.username} for pet '{user_report.pet_report.pet.name}'.",
+                    report=user_report.pet_report
+                )
+        except Profile.DoesNotExist:
+            pass # No admin user found
+
+    def update(self, request, *args, **kwargs):
+        """
+        Handles PATCH requests. Allows admins to update the report_status
+        and notifies the user of the change.
+        """
+        instance = self.get_object()
+        new_status = request.data.get('report_status')
+        original_status = instance.report_status
+
+        # Get the list of valid status choices from the model
+        valid_statuses = [choice[0] for choice in UserReport.REPORT_STATUS_CHOICES]
+
+        if not new_status:
+            return Response(
+                {"error": "The 'report_status' field is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if new_status not in valid_statuses:
+            return Response(
+                {"error": f"Invalid status. Must be one of {', '.join(valid_statuses)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Update the instance's status and the modified_by field
+        instance.report_status = new_status
+        instance.modified_by = request.user # Also track who made the change
+        instance.save(update_fields=['report_status', 'modified_by', 'modified_date'])
+
+        # Send a notification to the user only if the status has changed
+        if original_status != new_status:
+            Notification.objects.create(
+                sender=request.user,  # The admin making the change
+                
+                # FIX IS HERE: Use created_by to get the requester
+                receiver=instance.created_by,
+                
+                content=f"The status of your '{instance.report_type}' report for pet '{instance.pet_report.pet.name}' has been updated to '{new_status}'.",
+                report=instance.pet_report
+            )
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)

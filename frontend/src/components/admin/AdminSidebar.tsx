@@ -124,12 +124,14 @@ import {
   AlertCircle, 
   Search, 
   UserPlus, 
-  Bell 
+  Bell,
+  ClipboardList 
 } from 'lucide-react';
 
 interface AdminSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
+  theme: "light" | "dark";  // <-- add this
 }
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeSection, onSectionChange }) => {
@@ -171,6 +173,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeSection, onSectionCha
       emoji: '❤️'
     },
     {
+      id: 'report-status',
+      label: 'Report Status',
+      icon: ClipboardList,
+      color: 'from-cyan-500 to-cyan-600'
+    },
+    {
       id: 'rewards',
       label: 'Rewards',
       icon: UserPlus,
@@ -189,7 +197,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeSection, onSectionCha
       <div className="p-4">
         <nav className="space-y-2">
           {menuItems.map((item) => {
-            const Icon = item.icon;
+            // const Icon = item.icon;
             const isActive = activeSection === item.id;
             
             return (

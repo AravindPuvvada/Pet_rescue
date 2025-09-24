@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from .models import (
     Profile, PetType, Pet, PetMedicalHistory,
-    PetReport, PetAdoption, Notification, RewardPoint, FeedbackStory
+    PetReport, PetAdoption, Notification, RewardPoint, FeedbackStory, UserReport
 )
 from django.contrib.auth.hashers import make_password, check_password
 from django.conf import settings
-
+from django.utils import timezone
+from datetime import timedelta
 # ---------------- ProfileSerializer ----------------
 class ProfileSerializer(serializers.ModelSerializer):
     profile_image = serializers.ImageField(required=False, allow_null=True)
@@ -417,3 +418,90 @@ class FeedbackStorySerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.image.url)
         return settings.MEDIA_URL + obj.image.name
+    
+class UserReportSerializer(serializers.ModelSerializer):
+    """
+    Serializer for admins to READ UserReport instances.
+    """
+    # RENAME this nested serializer
+    pet_report_creator = ProfileSerializer(read_only=True)
+    pet_report = AdminPetReportSerializer(read_only=True)
+    created_by = ProfileSerializer(read_only=True)  
+    modified_by = ProfileSerializer(read_only=True) 
+
+    class Meta:
+        model = UserReport
+        fields = [
+            "id",
+            "pet_report",
+            "pet_report_creator", 
+            "report_type",
+            "message",
+            "report_status",
+            "created_date",
+            "modified_date",
+            "created_by",  
+            "modified_by",
+        ]
+        read_only_fields = fields
+
+
+class UserReportCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for users to CREATE a new UserReport.
+    It includes validation for business logic.
+    """
+    pet_report_id = serializers.PrimaryKeyRelatedField(
+        queryset=PetReport.objects.filter(report_status="Accepted"),
+        source='pet_report',
+        write_only=True,
+        label="Pet Report ID"
+    )
+
+    class Meta:
+        model = UserReport
+        fields = [
+            "pet_report_id",
+            "report_type",
+            "message",
+        ]
+
+    def validate(self, data):
+        """
+        Custom validation to ensure:
+        - "Sighting" is for "Lost" pets.
+        - "Reclaim" is for "Found" pets by the original owner.
+        - "Adoption" is for "Found" pets that are adoptable.
+        """
+        pet_report = data.get('pet_report')
+        report_type = data.get('report_type')
+        request_user = self.context.get('request').user
+
+        if report_type == "Sighting":
+            if pet_report.pet_status != "Lost":
+                raise serializers.ValidationError({"report_type": "A 'Sighting' report can only be submitted for a 'Lost' pet."})
+
+        elif report_type == "Reclaim":
+            if pet_report.pet_status != "Found":
+                raise serializers.ValidationError({"report_type": "A 'Reclaim' request can only be made for a 'Found' pet."})
+            
+
+        elif report_type == "Adoption":
+            if pet_report.pet_status != "Found":
+                raise serializers.ValidationError({"report_type": "An 'Adoption' request can only be made for a 'Found' pet."})
+
+            # Optional: Check if the pet is old enough to be adopted (e.g., found > 30 days ago)
+            time_cutoff = timezone.now() - timedelta(days=30)
+            if pet_report.modified_date > time_cutoff:
+                 raise serializers.ValidationError({"pet_report_id": "This pet is not yet available for adoption."})
+
+            # Check if the user is trying to adopt their own reported pet
+            if pet_report.user == request_user:
+                 raise serializers.ValidationError({"user": "You cannot submit an adoption request for a pet you reported."})
+
+            # Check if an active adoption request already exists for this pet from the same user
+            # Note: This checks the original PetAdoption model to prevent duplicate requests system-wide.
+            if PetAdoption.objects.filter(pet=pet_report.pet, requestor=request_user, status__in=["Pending", "Approved"]).exists():
+                 raise serializers.ValidationError({"pet_report_id": "You already have an active adoption request for this pet."})
+
+        return data

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Profile, PetType, Pet, PetMedicalHistory,
-    PetReport, PetAdoption, Notification
+    PetReport, PetAdoption, Notification, UserReport
 )
 from django.utils.html import format_html
 
@@ -126,3 +126,13 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ("sender", "content", "is_read")
     search_fields = ("sender__username", "content")
     list_filter = ("is_read",)
+
+
+@admin.register(UserReport)
+class UserReportAdmin(admin.ModelAdmin):
+    # Change 'user' to 'pet_report_creator' in this list
+    list_display = ('id', 'pet_report', 'pet_report_creator', 'report_type', 'report_status', 'created_by')
+    
+    # Also update any other places that might reference 'user'
+    list_filter = ('report_status', 'report_type')
+    search_fields = ('pet_report_petname', 'pet_report_creator_email') # Check if you have search_fields
