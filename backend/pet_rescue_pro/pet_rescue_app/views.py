@@ -127,7 +127,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    # ✅ POST /api/profiles/change_password/
+          # ✅ POST /api/profiles/change-password/
     @action(detail=False, methods=['post'], url_path='change-password')
     def change_password(self, request):
         user = request.user
@@ -135,14 +135,79 @@ class ProfileViewSet(viewsets.ModelViewSet):
         new_password = request.data.get("new_password")
 
         if not user.check_password(old_password):
-            return Response({"error": "Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Old password is incorrect"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not new_password:
-            return Response({"error": "New password is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "New password is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         user.set_password(new_password)
         user.save()
-        return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Password changed successfully"},
+            status=status.HTTP_200_OK
+        )
+
+    # ✅ DELETE /api/profiles/delete-image/
+    @action(detail=False, methods=['delete'], url_path='delete-image')
+    def delete_image(self, request):
+        user = request.user
+
+        # Try a few ways to resolve the Profile instance depending on your model shape.
+        profile = None
+        try:
+            # If Profile is a separate model with OneToOne/ForeignKey to auth.User, this will work:
+            profile = Profile.objects.get(user=user)
+        except Exception:
+            # If Profile is the user model (has email/username fields), fallback to email/id lookup
+            try:
+                profile = Profile.objects.get(email=user.email)
+            except Profile.DoesNotExist:
+                try:
+                    profile = Profile.objects.get(id=user.id)
+                except Profile.DoesNotExist:
+                    profile = None
+
+        if profile is None:
+            return Response(
+                {"detail": "Profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Determine which image field exists on your model
+        image_field_name = None
+        if hasattr(profile, 'profile_image'):
+            image_field_name = 'profile_image'
+        elif hasattr(profile, 'image'):
+            image_field_name = 'image'
+
+        if not image_field_name:
+            return Response(
+                {"detail": "No image field configured"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        image_field = getattr(profile, image_field_name, None)
+
+        if image_field:
+            # deletes file on storage and clears the field
+            image_field.delete(save=False)  # delete file from storage
+            setattr(profile, image_field_name, None)  # set field to None
+            profile.save(update_fields=[image_field_name])
+            return Response(
+                {"message": "Profile image deleted"},
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            {"detail": "No profile image to delete"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.all().order_by("id")
@@ -232,28 +297,34 @@ class PetAdoptionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
-        serializer.save(requestor=user,created_by=user, modified_by=user)
+        
+        # Save and capture the created adoption instance
+        adoption_instance = serializer.save(
+            requestor=user,
+            created_by=user,
+            modified_by=user
+        )
 
         # ✨ START: New logic to notify the admin
-        # Find the admin user to notify
         try:
+            # Assuming Profile is linked to the User model
             admin_user = Profile.objects.get(is_superuser=True)
         except Profile.DoesNotExist:
             admin_user = None
 
-        # If an admin exists, create the notification
         if admin_user:
             Notification.objects.create(
                 sender=user,
                 receiver=admin_user,
-                content=f"User '{user.username}' has submitted a claim for the pet '{adoption_instance.pet.name}'.",
-                pet=serializer.pet
+                content=f"User '{user.username}' has submitted a Adopt claim for the pet '{adoption_instance.pet.name}'.",
+                pet=adoption_instance.pet  # ✅ Use the instance, not serializer
             )
-        # ✨ END: New logic
+        # ✨ END
 
     def perform_update(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(modified_by=user)
+
 
 
 # -------------------------
@@ -1234,8 +1305,8 @@ class RecentPetsAPIView(APIView):
 # -------------------------
 class MyRewardView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    RESCUER_POINTS = 20
-    ADOPTER_POINTS = 10
+    RESCUER_POINTS = 100
+    ADOPTER_POINTS = 50
 
     @staticmethod
     def calculate_user_rewards(user):

@@ -105,16 +105,7 @@ const AdoptionPage: React.FC = () => {
     });
   }, [allPets, activeFilters]);
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setInputFilters((prev) => ({ ...prev, [name]: value }));
-  };
 
-  const handleApplyFilters = () => setActiveFilters(inputFilters);
-  const resetFilters = () => {
-    setInputFilters({ location: '', petType: '', color: '', breed: '' });
-    setActiveFilters({ location: '', petType: '', color: '', breed: '' });
-  };
 
   const handleViewDetails = (pet: Pet) => setSelectedPet(pet);
   const handleCloseModal = () => setSelectedPet(null);

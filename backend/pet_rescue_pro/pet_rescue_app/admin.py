@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Profile, PetType, Pet, PetMedicalHistory,
-    PetReport, PetAdoption, Notification, UserReport
+    PetReport, PetAdoption, Notification, UserReport, FeedbackStory
 )
 from django.utils.html import format_html
 
@@ -136,3 +136,16 @@ class UserReportAdmin(admin.ModelAdmin):
     # Also update any other places that might reference 'user'
     list_filter = ('report_status', 'report_type')
     search_fields = ('pet_report_petname', 'pet_report_creator_email') # Check if you have search_fields
+
+
+@admin.register(FeedbackStory)
+class FeedbackStoryAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "title", "pet_name", "submitted_at", "has_image")
+    list_filter = ("submitted_at", "user")
+    search_fields = ("title", "story", "pet_name", "user__user__username")  # user__user if Profile links to User
+    readonly_fields = ("submitted_at",)
+    
+    def has_image(self, obj):
+        return bool(obj.image)
+    has_image.boolean = True
+    has_image.short_description = "Image Uploaded"

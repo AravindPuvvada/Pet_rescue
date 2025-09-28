@@ -140,13 +140,14 @@ const SuccessStoriesSection: React.FC = () => {
         <div className="relative max-w-4xl mx-auto">
           <div className="bg-white dark:bg-dark-primary rounded-3xl shadow-2xl overflow-hidden theme-transition">
             <div className="md:flex">
-              <div className="md:w-1/2">
-                <img
-                  src={active.image}
-                  alt={active.title}
-                  className="w-full h-64 md:h-80 object-cover"
-                />
-              </div>
+              <div className="w-1000 h-300">
+  <img
+    src={active.image}
+    alt={active.title}
+    className="w-full h-full object-cover rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none"
+/>
+</div>
+
               <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
                 <div className="flex items-center mb-4">
                   <Star className="w-5 h-5 text-yellow-400 mr-1" />

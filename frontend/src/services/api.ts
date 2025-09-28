@@ -1080,7 +1080,10 @@ async createUserReport(payload: UserReportPayload): Promise<AdminUserReport> {
       body: JSON.stringify({ report_status: status }),
   });
   }
-  
+async deleteProfileImage(): Promise<UserProfile> {
+  // calls DELETE /profiles/delete-image/ — uses this.request to keep headers/401 handling consistent
+  return this.request('/profiles/delete-image/', { method: 'DELETE' });
+}
 }
 
 export const apiService = new ApiService();

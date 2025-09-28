@@ -139,8 +139,8 @@ const AdminOverview: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#5B4438] dark:text-gray-200 mb-1">{card.title}</p>
-              <p className="text-3xl font-bold text-[#5B4438] dark:text-white">{card.value}</p>
+              <p className="text-sm font-medium text-[#5B4438] dark:text-white mb-1">{card.title}</p>
+              <p className="text-3xl font-bold text-[#5B4438] dark:text-yellow-300">{card.value}</p>
             </div>
             <div className={`w-12 h-12 ${card.bgColor} rounded-lg flex items-center justify-center`}>
               <Icon className={`w-6 h-6 ${card.textColor}`} />

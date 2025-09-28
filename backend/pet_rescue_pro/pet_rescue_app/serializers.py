@@ -34,6 +34,7 @@ class PetTypeSerializer(serializers.ModelSerializer):
         fields = ["id", "type"]
 
 # ---------------- PetSerializer ----------------
+# ---------------- PetSerializer ----------------
 class PetSerializer(serializers.ModelSerializer):
     pet_type = serializers.CharField(max_length=50)  # Allow free text input
     created_by = ProfileSerializer(read_only=True)
@@ -50,34 +51,67 @@ class PetSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
-        if not obj.image:
-            return None
+        """
+        Return an absolute URL to the pet image.
+
+        Priority:
+        1) pet.image (existing behavior)
+        2) latest related PetReport.image (new fallback)
+        3) None
+        """
         request = self.context.get("request")
-        if request:
-            return request.build_absolute_uri(obj.image.url)
-        return f"{settings.MEDIA_URL}{obj.image.name}"
-    
+
+        # 1) Prefer pet.image if present
+        try:
+            if getattr(obj, "image", None):
+                # CHANGED: safe attempt to return absolute URL when request is provided
+                if request:
+                    return request.build_absolute_uri(obj.image.url)
+                return f"{settings.MEDIA_URL}{obj.image.name}"
+        except Exception:
+            # defensive: if obj.image exists but something odd happens, continue to fallback
+            pass
+
+        # 2) Fallback -> latest report image (if any)
+        try:
+            reports_manager = getattr(obj, "reports", None)
+            if reports_manager is not None:
+                latest_report = reports_manager.order_by("-created_date").first()
+                if latest_report and getattr(latest_report, "image", None):
+                    if request:
+                        return request.build_absolute_uri(latest_report.image.url)
+                    # If no request in context, return relative/report url (best-effort)
+                    return getattr(latest_report.image, "url", None)
+        except Exception:
+            # don't raise — just return None (keeps backward compatible behavior)
+            pass
+
+        # 3) Nothing found
+        return None
+
     def create(self, validated_data):
-        # Handle pet_type as string instead of ForeignKey
-        pet_type_name = validated_data.pop('pet_type', '')
-        
-        # Get or create PetType
+        """
+        CHANGED: Re-introduced create() to support creating Pet from a string pet_type.
+        This was present in the working (old) serializer — missing create() causes creation
+        flows to fail when frontend posts {"pet_type": "Dog", ...}.
+        """
+        pet_type_name = validated_data.pop("pet_type", "")
         if pet_type_name:
-            pet_type_obj, created = PetType.objects.get_or_create(type=pet_type_name)
-            validated_data['pet_type'] = pet_type_obj
+            pet_type_obj, _ = PetType.objects.get_or_create(type=pet_type_name)
+            validated_data["pet_type"] = pet_type_obj
         return super().create(validated_data)
-    
+
     def update(self, instance, validated_data):
-        # Pop the pet_type string from the data, if it exists
-        pet_type_name = validated_data.pop('pet_type', None)
-
-        # If a new pet_type name was provided, find or create the PetType object
+        """
+        Handle pet_type string -> PetType instance on updates too.
+        Keep rest of update behavior unchanged.
+        """
+        pet_type_name = validated_data.pop("pet_type", None)
         if pet_type_name is not None:
-            pet_type_obj, created = PetType.objects.get_or_create(type=pet_type_name)
-            # Assign the actual object to the instance before saving
-            instance.pet_type = pet_type_obj
+            pet_type_obj, _ = PetType.objects.get_or_create(type=pet_type_name)
+            # Put the actual object into validated_data so super().update assigns FK correctly
+            validated_data["pet_type"] = pet_type_obj
 
-        # Allow the default update method to handle all other fields
         return super().update(instance, validated_data)
 
 # ---------------- PetReportSerializer ----------------

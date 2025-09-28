@@ -62,25 +62,14 @@ const UserReportForm: React.FC<UserReportFormProps> = ({
       });
 
       onSubmitSuccess(pet.name, reportType);
-    } catch (err: unknown) {
-    let errorMessage = "An unexpected error occurred. Please try again.";
-
-    if (err instanceof Error) {
-      errorMessage = err.message;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || 'An unexpected error occurred. Please try again.';
+      console.error('User report submission failed:', err);
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    // If this is an Axios-style error
-    if (typeof err === "object" && err !== null && "response" in err) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      errorMessage = axiosErr.response?.data?.error ?? errorMessage;
-    }
-
-    console.error("User report submission failed:", err);
-    setError(errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4 animate-fade-in">
