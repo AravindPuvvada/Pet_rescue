@@ -322,6 +322,19 @@ export interface AdminUserReport {
   created_by: UserProfile;   
   modified_by: UserProfile;
 }
+export interface RecentlyAddedPet {
+  id: number;
+  name: string;
+  pet_type: string;
+  age?: number;
+  color?: string;
+  breed?: string;
+  description?: string;
+  image?: string;
+  created_date: string;
+}
+
+
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -1083,6 +1096,10 @@ async createUserReport(payload: UserReportPayload): Promise<AdminUserReport> {
 async deleteProfileImage(): Promise<UserProfile> {
   // calls DELETE /profiles/delete-image/ — uses this.request to keep headers/401 handling consistent
   return this.request('/profiles/delete-image/', { method: 'DELETE' });
+}
+// Inside ApiService class
+async getRecentlyAddedPets(): Promise<{ recent_pets: RecentlyAddedPet[] }> {
+  return this.request<{ recent_pets: RecentlyAddedPet[] }>('/pets/recent/');
 }
 }
 

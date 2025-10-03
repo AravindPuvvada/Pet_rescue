@@ -35,7 +35,7 @@ const Chatbot: React.FC = () => {
     if (isOpen) {
       setUnreadCount(0);
       if (messages.length === 0) {
-        setMessages([{ sender: "Bot", text: "This is Blob 🤖, how can I help you?" }]);
+        setMessages([{ sender: "Bot", text: "This is BuddyBot 🤖, how can I help you?" }]);
       }
     }
   }, [isOpen, messages.length]);
