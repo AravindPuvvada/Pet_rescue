@@ -410,7 +410,7 @@ const themeClasses = {
     pageBg: 'bg-[#E8E0D3] text-black',
     cardBg: 'bg-gray-800 border-gray-700',
     headerText: 'text-[#5B4438]',
-    subText: 'text-black',
+    subText: 'text-white',
     inputBg: 'bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-blue-500',
     selectBg: 'bg-white text-black border-gray-200 focus:ring-blue-400',
     modalBg: 'bg-[#F5EFE6] border-[#5B4438]/20',
