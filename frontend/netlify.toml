@@ -1,6 +1,7 @@
 [build]
+command = "npm run build"
 publish = "dist"
-ECHO is on.
+
 [[redirects]]
 from = "/*"
 to = "/index.html"
