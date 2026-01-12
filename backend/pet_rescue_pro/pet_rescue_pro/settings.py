@@ -54,7 +54,8 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-ROOT_URLCONF = 'pet_rescue_pro.urls'
+ROOT_URLCONF = 'pet_rescue_pro.pet_rescue_pro.urls'
+
 
 # ==== Templates ====
 TEMPLATES = [
@@ -72,7 +73,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'pet_rescue_pro.wsgi.application'
+WSGI_APPLICATION = 'pet_rescue_pro.pet_rescue_pro.wsgi.application'
+
 
 # ==== Database ====
 DATABASES = {
