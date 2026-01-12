@@ -1,0 +1,7 @@
+[build]
+publish = "dist"
+ECHO is on.
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
