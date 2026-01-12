@@ -3,6 +3,10 @@
 import os
 import sys
 
+os.environ.setdefault(
+    'DJANGO_SETTINGS_MODULE',
+    'pet_rescue_pro.pet_rescue_pro.settings'
+)
 
 def main():
     """Run administrative tasks."""
