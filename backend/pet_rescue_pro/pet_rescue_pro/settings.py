@@ -36,8 +36,7 @@ INSTALLED_APPS = [
     'django_extensions',
 
     # local apps
-    #x"pet_rescue_app",
-    "pet_rescue_pro.pet_rescue_app.apps.PetRescueAppConfig",
+    "pet_rescue_app",
 ]
 
 # ==== Middleware ====
@@ -54,8 +53,7 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-ROOT_URLCONF = 'pet_rescue_pro.pet_rescue_pro.urls'
-
+ROOT_URLCONF = 'pet_rescue_pro.urls'
 
 # ==== Templates ====
 TEMPLATES = [
@@ -73,8 +71,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'pet_rescue_pro.pet_rescue_pro.wsgi.application'
-
+WSGI_APPLICATION = 'pet_rescue_pro.wsgi.application'
 
 # ==== Database ====
 DATABASES = {
