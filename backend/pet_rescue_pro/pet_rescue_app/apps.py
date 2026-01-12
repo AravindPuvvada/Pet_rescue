@@ -1,6 +1,5 @@
 from django.apps import AppConfig
 
-
 class PetRescueAppConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'pet_rescue_app'
+    name = 'pet_rescue_pro.pet_rescue_app'

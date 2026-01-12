@@ -36,8 +36,8 @@ INSTALLED_APPS = [
     'django_extensions',
 
     # local apps
-    #"pet_rescue_app",
-    "pet_rescue_pro.pet_rescue_app",
+    #x"pet_rescue_app",
+    "pet_rescue_pro.pet_rescue_app.apps.PetRescueAppConfig",
 ]
 
 # ==== Middleware ====
