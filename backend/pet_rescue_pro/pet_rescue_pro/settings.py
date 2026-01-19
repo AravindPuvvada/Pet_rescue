@@ -38,6 +38,8 @@ INSTALLED_APPS = [
 
     # local apps
     "pet_rescue_app",
+    'pet_rescue_app.apps.PetRescueAppConfig',
+
 ]
 
 # ==== Middleware ====
@@ -145,16 +147,3 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
-import os
-
-if os.environ.get("RENDER") == "true":
-    #from django.contrib.auth import get_user_model
-    #User = get_user_model()
-    pass
-    if not User.objects.filter(username="admin").exists():
-        User.objects.create_superuser(
-            username="admin",
-            email="admin@example.com",
-            password="admin123"
-        )
