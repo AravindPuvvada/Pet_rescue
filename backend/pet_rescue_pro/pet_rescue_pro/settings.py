@@ -2,7 +2,7 @@ import dj_database_url
 from pathlib import Path 
 import os
 from dotenv import load_dotenv
-import google.generativeai as genai
+#import google.generativeai as genai
 from datetime import timedelta
 
 # Base directory
@@ -22,8 +22,8 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ==== Gemini AI API ====
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+#GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+#genai.configure(api_key=GEMINI_API_KEY)
 
 # ==== Applications ====
 INSTALLED_APPS = [
